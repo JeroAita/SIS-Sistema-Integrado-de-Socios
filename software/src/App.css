@@ -1,0 +1,54 @@
+/* Hide scrollbars by default */
+::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Show and style scrollbars on hover or active scrolling */
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Ensure scrollbars appear on scroll with custom thin size */
+@media (hover: hover) {
+  *:hover::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    transition: background 0.3s ease;
+  }
+
+  *:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* Ensure compatibility with mouse/trackpad scroll */
+@media (pointer: fine) {
+  *:active::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *:active::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
