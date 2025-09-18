@@ -20,7 +20,7 @@ cd software
 npm install
 ```
 
-#### 5. Levantar el servidor
+#### 3. Levantar el servidor
 ```bash
 # Desarrollo
 npm run dev
