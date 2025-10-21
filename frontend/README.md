@@ -12,7 +12,7 @@
 #### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/JeroAita/SIS-Sistema-Integrado-de-Socios
-cd software
+cd frontend
 ```
 
 #### 2. Instalar dependencias
@@ -21,9 +21,23 @@ npm install
 ```
 
 #### 3. Levantar el servidor
+##### 3.1 Desarrollo
 ```bash
-# Desarrollo
 npm run dev
+```
+##### 3.2 Producción
+```bash
+# Generar build estático
+npm run build
+# ó
+npm install vite -g
+vite build
+
+# Instalar librería `serve` 
+npm install serve -g
+
+# Servir el build que se generó en la carpeta dist
+serve dist
 ```
 
 ### Estructura del Proyecto
