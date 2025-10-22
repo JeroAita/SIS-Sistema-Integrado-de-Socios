@@ -1,10 +1,16 @@
 # SIS: Sistema Integrado de Socios
 
-Proyecto propuesto como resolución del Trabajo Práctico Final de la asignatura Desarrollo de Software por el grupo 8:
+Proyecto propuesto como resolución del trabajo práctico final de la asignatura Desarrollo de Software, UTN FRD.
+
+**Grupo 8:**
 
 - Aita Jerónimo
 - Fernández Nicolás
 - Mactavish Tomás
 - Rugiero Fausto
 
-Para más información, leer la [Documentación](documentacion/documentacion.pdf).
+Para más información del proyecto, leer la [Documentación](documentacion/documentacion.pdf).
+
+Para conocer el back-end, leer su [README](backend/README.md).
+
+Para conocer el front-end, leer su [README](frontend/README.md).

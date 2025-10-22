@@ -12,25 +12,15 @@
 
 Pre-requisitos:
 
-- Python 3.8 o superior.
-- Herramienta de entornos virtuales python: `python3-venv`.
-- Docker y Docker Compose.
+- Python 3.8 o superior y su herramienta de entornos virtuales python: `python3-venv`.
+- Docker y su herramienta Docker Compose.
 
 ### Instalación de pre-requisitos en sistemas Windows
 
-#### Python y herramientas virtuales
-
-1. Descargar e instalar Python desde [python.org](https://www.python.org/downloads/). **Importante:** Marcar la opción "Add Python to PATH" durante la instalación.
-
-La herramienta `venv` viene incluida con Python 3.3+.
-
-#### Docker Desktop
-
-1. Descargar Docker Desktop desde [docker.com](https://www.docker.com/products/docker-desktop/).
-2. Ejecutar el instalador y seguir las instrucciones.
-3. Reiniciar el sistema si se solicita.
-
-Docker Compose viene incluido con Docker Desktop.
+1. Descargar e instalar Python desde [python.org](https://www.python.org/downloads/). **Importante:** Marcar la opción "Add Python to PATH" durante la instalación. 
+    - La herramienta `venv` viene incluida con Python 3.3+.
+2. Descargar Docker Desktop desde [docker.com](https://www.docker.com/products/docker-desktop/).
+    - La herramienta Docker Compose viene incluida con Docker Desktop.
 
 **Nota:** Docker Desktop en Windows requiere WSL 2 (Windows Subsystem for Linux). El instalador puede configurarlo automáticamente.
 
