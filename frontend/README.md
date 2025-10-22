@@ -1,4 +1,4 @@
-# 🚀 SIS - Sistema Integrado de Socios
+# 🚀 SIS - Sistema Integrado de Socios: Front-end
 
 ## Guía Rápida para Levantar el Entorno
 
