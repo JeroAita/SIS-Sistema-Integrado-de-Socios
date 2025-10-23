@@ -140,7 +140,7 @@ class Pago(models.Model):
 
 class Cuota(models.Model):
     class EstadoCuota(models.TextChoices):
-        AL_DIA = "al dia", "Al dia"
+        AL_DIA = "al_dia", "Al_dia"
         ATRASADA = "atrasada", "Atrasada"
     
     fecha_vencimiento = models.DateTimeField()
