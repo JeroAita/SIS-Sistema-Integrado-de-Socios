@@ -89,10 +89,10 @@ pip install -r requirements.txt
 
 Pasos:
 
-1. Levantar contenedores Docker.
+1. Levantar contenedores Docker (MySQL y PHPMyAdmin, app admin hosteada en puerto 8080).
 2. Levantar entorno virtual Python.
 3. Aplicar migraciones a la base de datos.
-4. Levantar servidor de desarrollo django.
+4. Levantar servidor de desarrollo django (app hosteada en puerto 8000).
 
 ### Levantar servidor de pruebas en Windows
 
@@ -161,12 +161,15 @@ docker compose down -v
 
 ```
 backend/
+├── sis_django/             # Raíz de proyecto Django
+│   ├── sis_django/             # Configuración de proyecto Django, por ej. settings.py
+│   │   └── settings.py
+│   ├── sis_app/                # Programación de app Django, por ej. models.py
+│   │   └── models.py
+│   └── manage.py               # Interacción con proyecto Django
+│
+├── venv_django/            # Entorno virtual (no versionado en Git)
 ├── docker-compose.yml      # Configuración de contenedores Docker
 ├── requirements.txt        # Dependencias Python del proyecto
-├── venv_django/            # Entorno virtual (no versionado en Git)
-├── sis_django/
-│   ├── manage.py           # Utilidad de línea de comandos de Django
-│   └── sis_django/         # Archivos del proyecto
-│
 └── README.md               # Este archivo
 ```

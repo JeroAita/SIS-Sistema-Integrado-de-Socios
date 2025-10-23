@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Definición del modelo usuario (sin la siguiente línea, Django utilizará su model User predeterminado)
+AUTH_USER_MODEL = 'sis_app.Usuario'
 
 # Application definition
 
@@ -37,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'sis_app.apps.SisAppConfig' # Nuestra apps
 ]
 
 MIDDLEWARE = [
