@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
     'sis_app.apps.SisAppConfig' # Nuestra apps
 ]
 
@@ -127,3 +128,29 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Configuración de Django REST Framework
+REST_FRAMEWORK = {
+    # Renderizadores: cómo se muestra la respuesta
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',  # Respuestas en JSON
+        'rest_framework.renderers.BrowsableAPIRenderer',  # Interfaz web navegable
+    ],
+    
+    # Autenticación por defecto
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',  # Usa sesiones de Django
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    
+    """
+    # Permisos por defecto (puedes comentar esta línea para testing)
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Requiere login
+    ],
+    """
+
+    # Paginación (opcional, pero recomendado)
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+}

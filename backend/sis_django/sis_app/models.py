@@ -169,10 +169,10 @@ class Cuota(models.Model):
     def dias_atraso(self):
         from django.utils import timezone
 
-        if obj.fecha_pago:
+        if self.fecha_pago:
             return 0
         
-        if obj.fecha_vencimiento < timezone.now():
+        if self.fecha_vencimiento < timezone.now():
             delta = timezone.now() - obj.fecha_vencimiento
             return delta.days
 
@@ -182,7 +182,7 @@ class Cuota(models.Model):
         return f"Cuota de usuario {self.usuario_socio}"
 
 class CompensacionStaff(models.Model):
-    periodo = models.CharField(max_length=100) # ¿Periodo de qué?
+    periodo = models.CharField(max_length=100)
     usuario_staff = models.ForeignKey(
         Usuario,
         on_delete=models.PROTECT,
