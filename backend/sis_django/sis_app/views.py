@@ -53,7 +53,7 @@ Endpoints @action:
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny] #[IsAuthenticated], [IsAdminUser] para que sólo lean/escriban usuarios o sólo lea/escriba usuario admin.
 
     def get_queryset(self):
         queryset = Usuario.objects.all()
@@ -146,7 +146,7 @@ Endpoints @action:
 class ActividadViewSet(viewsets.ModelViewSet):
     queryset = Actividad.objects.all()
     serializer_class = ActividadSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = Actividad.objects.all()
@@ -215,7 +215,7 @@ Endpoints @action:
 class InscripcionViewSet(viewsets.ModelViewSet):
     queryset = Inscripcion.objects.all()
     serializer_class = InscripcionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = Inscripcion.objects.all()
@@ -273,7 +273,7 @@ Endpoints @action:
 class CuotaViewSet(viewsets.ModelViewSet):
     queryset = Cuota.objects.all()
     serializer_class = CuotaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = Cuota.objects.all()
@@ -344,7 +344,7 @@ Endpoints @action:
 class CompensacionStaffViewSet(viewsets.ModelViewSet):
     queryset = CompensacionStaff.objects.all()
     serializer_class = CompensacionStaffSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         queryset = CompensacionStaff.objects.all()
