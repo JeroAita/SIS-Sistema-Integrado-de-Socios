@@ -81,6 +81,10 @@ class Actividad(models.Model):
         related_name='actividades_dictadas' # Permite ver las actividades de un usuario staff con: usuario.actividades_dictadas.all()
     )
 
+    @property
+    def cantidad_inscriptos(self):
+        return self.inscripciones.filter(estado='confirmada').count()
+
     def __str__(self):
         return f"{self.nombre} - {self.usuario_staff.first_name}"
 
@@ -152,7 +156,7 @@ class Cuota(models.Model):
     )
     usuario_socio     = models.ForeignKey(
         Usuario,
-        on_delete=models.PROTECT,   # No permite eliminar usuarios que adeuden cuotas.
+        on_delete=models.PROTECT,   # Impide eliminar usuarios que adeuden cuotas.
         related_name="cuotas"
     )
     estado            = models.CharField(
@@ -160,6 +164,19 @@ class Cuota(models.Model):
         choices=EstadoCuota.choices,
         default=EstadoCuota.ATRASADA
     )
+
+    @property
+    def dias_atraso(self):
+        from django.utils import timezone
+
+        if obj.fecha_pago:
+            return 0
+        
+        if obj.fecha_vencimiento < timezone.now():
+            delta = timezone.now() - obj.fecha_vencimiento
+            return delta.days
+
+        return 0
 
     def __str__(self):
         return f"Cuota de usuario {self.usuario_socio}"
