@@ -1,14 +1,21 @@
-import React from 'react';
+import React from "react";
 
-const HomePanel = ({ userRole, myClasses, payments, userName }) => {
-  const roleTitle = { admin: 'Administrador', profesor: 'Miembro del Staff', socio: 'Socio' };
-  
+/**
+ * HomePanel ahora acepta `totals` desde el backend:
+ *   totals = { socios: number, staff: number, admins: number, ingresos?: number }
+ * Si no vienen, usa los valores hardcodeados como fallback para no romper la UI.
+ */
+const HomePanel = ({ userRole, myClasses, payments, userName, totals }) => {
+  const totalSocios = totals?.socios ?? 3;
+  const miembrosStaff = totals?.staff ?? 3;
+  const ingresosMensuales = totals?.ingresos ?? 4250;
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-6">Bienvenido, {userName}</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {userRole === 'socio' && (
+        {userRole === "socio" && (
           <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h3 className="font-semibold text-blue-700 mb-2">Clases Inscritas</h3>
@@ -17,13 +24,15 @@ const HomePanel = ({ userRole, myClasses, payments, userName }) => {
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <h3 className="font-semibold text-green-700 mb-2">Estado de Cuota</h3>
               <p className="text-lg font-bold text-green-600">
-                {payments.find(p => p.month === 'Mayo 2025')?.status === 'Pendiente' ? 'Pendiente de Pago' : 'Al día'}
+                {payments.find((p) => p.month === "Mayo 2025")?.status === "Pendiente"
+                  ? "Pendiente de Pago"
+                  : "Al día"}
               </p>
             </div>
           </>
         )}
-        
-        {userRole === 'profesor' && (
+
+        {userRole === "profesor" && (
           <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h3 className="font-semibold text-blue-700 mb-2">Mis Próximas Clases</h3>
@@ -35,25 +44,27 @@ const HomePanel = ({ userRole, myClasses, payments, userName }) => {
             </div>
           </>
         )}
-        
-        {userRole === 'admin' && (
+
+        {userRole === "admin" && (
           <>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h3 className="font-semibold text-blue-700 mb-2">Total Socios</h3>
-              <p className="text-2xl font-bold">3</p>
+              <p className="text-2xl font-bold">{totalSocios}</p>
             </div>
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <h3 className="font-semibold text-green-700 mb-2">Ingresos Mensuales</h3>
-              <p className="text-2xl font-bold">$4,250</p>
+              <p className="text-2xl font-bold">
+                ${Number(ingresosMensuales).toLocaleString()}
+              </p>
             </div>
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
               <h3 className="font-semibold text-purple-700 mb-2">Miembros del Staff</h3>
-              <p className="text-2xl font-bold">3</p>
+              <p className="text-2xl font-bold">{miembrosStaff}</p>
             </div>
           </>
         )}
       </div>
-      
+
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">Próximas Actividades</h3>
         <div className="bg-white rounded-lg border border-gray-200">
