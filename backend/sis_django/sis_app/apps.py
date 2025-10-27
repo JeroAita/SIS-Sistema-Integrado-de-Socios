@@ -1,4 +1,3 @@
-# sis_app/apps.py
 from django.apps import AppConfig
 
 class SisAppConfig(AppConfig):

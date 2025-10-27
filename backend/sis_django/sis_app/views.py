@@ -21,9 +21,18 @@ from .serializers import (
     CompensacionStaffSerializer,
 )
 
-# =====================================================
-#        USUARIOS (Socios, Staff, Admin)
-# =====================================================
+"""
+En la asignatura vimos codificación de vistas creando clases que heredan
+de APIView. Para estas clases, se define manualmente un método por cada
+método HTTP y una ruta a la que asociarlo.
+
+Una alternativa es heredar de viewsets.ModelViewSet, que define automáticamente
+los métodos CRUD estándares para APIs REST y sus rutas. Pueden extenderse
+sobreescribiendo métodos, pero acorta el código de no necesitar personalizarlos.
+
+Como se están siguiendo los estándares de APIs REST, optamos por utilizar ViewSet.
+"""
+
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all().order_by("id")
     serializer_class = UsuarioSerializer
@@ -45,7 +54,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         """
         Crea usuario. Si viene {"grupo": "staff|admin|socio"} en el body,
         asigna el grupo y sincroniza is_staff en la misma llamada.
-        (Tu UI NO necesita cambiar; si después llama a asignar_grupo, no pasa nada).
         """
         serializer = self.get_serializer(data=request.data)
         try:
