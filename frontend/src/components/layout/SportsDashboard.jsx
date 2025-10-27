@@ -44,11 +44,17 @@ import {
   actualizarActividad,
   eliminarActividad,
 } from "../../services/actividades";
-
+import { useAuth } from "../../contexts/AuthContext";
 const DEFAULT_PASSWORD = "Club2025!";
 
 const SportsDashboard = ({ initialView = "inicio" }) => {
-  const [userRole, setUserRole] = useState("admin");
+  const [userRole, setUserRole] = useState("");
+  const { user } = useAuth();
+  useEffect(() => {
+    if (user) {
+      setUserRole(user.role);
+    }
+  }, [user]);
   const [activeView, setActiveView] = useState(initialView);
   const [notification, setNotification] = useState(null);
 
@@ -446,11 +452,7 @@ async function handleDeleteActivity(id) {
             myClasses={myClasses}
             payments={payments}
             userName={
-              userRole === "admin"
-                ? "Administrador"
-                : userRole === "profesor"
-                ? "Staff"
-                : "Juan Pérez"
+              user ? `${user.first_name} ${user.last_name}` : "Usuario"
             }
             totals={{ socios: totSocios, staff: totStaff, admins: totAdmins }}
           />

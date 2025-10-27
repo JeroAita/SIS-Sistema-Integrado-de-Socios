@@ -1,7 +1,10 @@
 import React from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Header = ({ userRole, activeView }) => {
+  const { user } = useAuth();
+
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
       <div className="flex items-center">
@@ -15,9 +18,9 @@ const Header = ({ userRole, activeView }) => {
           <Bell size={20} />
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
         </button>
-        <div className="mr-2">
+        <div className="mr-4">
           <p className="font-medium">
-            {userRole === 'admin' ? 'Admin' : userRole === 'profesor' ? 'Staff' : 'Juan Pérez'}
+            {user ? `${user.first_name} ${user.last_name}` : 'Usuario'}
           </p>
         </div>
       </div>

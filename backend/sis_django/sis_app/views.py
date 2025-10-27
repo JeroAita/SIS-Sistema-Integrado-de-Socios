@@ -2,10 +2,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.db import IntegrityError
 from django.db.utils import IntegrityError as DBIntegrityError
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from django.http import HttpResponse
 
 
 from .models import Usuario, Actividad, Inscripcion, Cuota, CompensacionStaff
@@ -266,3 +270,84 @@ class CompensacionStaffViewSet(viewsets.ModelViewSet):
                 "compensaciones": serializer.data,
             }
         )
+
+
+# =====================================================
+#        AUTENTICACIÓN
+# =====================================================
+class LoginView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        if not username or not password:
+            return Response({'error': 'Username y password requeridos'}, status=400)
+        
+        user = authenticate(username=username, password=password)
+        if not user:
+            return Response({'error': 'Credenciales inválidas'}, status=401)
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = refresh.access_token
+        
+        response = Response({
+            'user': UsuarioSerializer(user).data,
+            'access': str(access_token),
+            'refresh': str(refresh)
+        })
+        
+        # Setear cookies
+        response.set_cookie(
+            'access_token',
+            str(access_token),
+            max_age=3600,  # 1 hora
+            httponly=True,
+            secure=False,  # Cambiar a True en producción con HTTPS
+            samesite='Lax'
+        )
+        
+        response.set_cookie(
+            'refresh_token',
+            str(refresh),
+            max_age=604800,  # 7 días
+            httponly=True,
+            secure=False,  # Cambiar a True en producción con HTTPS
+            samesite='Lax'
+        )
+        
+        return response
+
+
+class LogoutView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        response = Response({'message': 'Logout exitoso'})
+        
+        # Limpiar cookies
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        
+        return response
+
+
+class UserProfileView(APIView):
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        # Verificar si hay token en las cookies
+        access_token = request.COOKIES.get('access_token')
+        if not access_token:
+            return Response({'error': 'No autenticado'}, status=401)
+        
+        # Verificar el token manualmente
+        from rest_framework_simplejwt.tokens import AccessToken
+        try:
+            token = AccessToken(access_token)
+            user_id = token['user_id']
+            user = Usuario.objects.get(id=user_id)
+            return Response(UsuarioSerializer(user).data)
+        except:
+            return Response({'error': 'Token inválido'}, status=401)
