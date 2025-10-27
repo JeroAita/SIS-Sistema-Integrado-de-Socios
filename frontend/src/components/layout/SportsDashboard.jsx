@@ -1,588 +1,576 @@
-import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-import Notification from '../common/Notification';
-import HomePanel from '../dashboard/HomePanel';
-import ClassesPanel from '../activities/ClasesPanel';
-import MyClassesPanel from '../activities/MyClasesPanel';
-import PaymentsPanel from '../payments/PaymentsPanel';
-import MembersPanel from '../members/MembersPanel';
-import InstructorsPanel from '../staff/InstructorsPanel';
+import React, { useEffect, useMemo, useState } from "react";
 
-import ConfigPanel from '../settings/ConfigPanel';
-import MemberModal from '../members/MemberModal';
-import ProfessorProfile from '../staff/ProfesorProfile';
-import AdminSocioHistory from '../members/AdminSocioHistory';
-import StaffActivityList from '../staff/StaffActivityList';
-import AdminActivityManagement from '../activities/AdminActivityManagement';
-import ActivityModal from '../activities/ActivityModal';
-import PaymentModal from '../payments/PaymentModal';
-import EnrollmentModal from '../activities/EnrollmentModal';
-import StaffCompensation from '../staff/StaffCompensation';
-import StaffManagement from '../staff/StaffManagement';
-import ProfilePanel from '../members/ProfilePanel';
+// Layout
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+import Notification from "../common/Notification";
 
-const SportsDashboard = () => {
-    const [userRole, setUserRole] = useState('admin'); // Cambio por defecto a admin
-    const [activeView, setActiveView] = useState('inicio');
-    const [notification, setNotification] = useState(null);
-    const [classes, setClasses] = useState([
-        { id: 1, title: 'Yoga', instructor: 'Ana García', date: '2025-07-15', time: '10:00', capacity: 15, enrolled: 8, description: 'Clase de yoga para principiantes', enrollmentFee: '$25', staffMember: 'Ana García' },
-        { id: 2, title: 'Natación', instructor: 'Carlos Mendoza', date: '2025-07-20', time: '16:00', capacity: 10, enrolled: 10, description: 'Clase de natación técnica', enrollmentFee: '$30', staffMember: 'Carlos Mendoza' },
-        { id: 3, title: 'Tenis', instructor: 'Laura Pérez', date: '2025-08-05', time: '09:00', capacity: 8, enrolled: 5, description: 'Clase de tenis intermedio', enrollmentFee: '$40', staffMember: 'Laura Pérez' },
-        { id: 4, title: 'Fútbol', instructor: 'Roberto Suárez', date: '2025-08-12', time: '18:00', capacity: 22, enrolled: 18, description: 'Entrenamiento de fútbol', enrollmentFee: '$35', staffMember: 'Roberto Suárez' },
-        { id: 5, title: 'Pilates', instructor: 'María López', date: '2025-07-25', time: '14:00', capacity: 12, enrolled: 6, description: 'Clase de pilates para todos los niveles', enrollmentFee: '$20', staffMember: 'María López' },
-        { id: 6, title: 'Zumba', instructor: 'Ana García', date: '2025-08-18', time: '19:00', capacity: 20, enrolled: 15, description: 'Clase de zumba energética', enrollmentFee: '$15', staffMember: 'Ana García' }
-    ]);
-    const [myClasses, setMyClasses] = useState([
-        { id: 2, title: 'Natación', instructor: 'Carlos Mendoza', date: '2025-07-20', time: '16:00', enrollmentFee: '$30', description: 'Clase de natación técnica' },
-        { id: 1, title: 'Yoga', instructor: 'Ana García', date: '2025-07-15', time: '10:00', enrollmentFee: '$25', description: 'Clase de yoga para principiantes' }
-    ]);
-    const [payments, setPayments] = useState([
-        { id: 1, memberId: 1, memberName: 'Juan Pérez', month: 'Marzo 2025', status: 'Pagado', amount: '$50', date: '2025-03-01', paymentMethod: 'efectivo', notes: 'Cuota mensual', activity: 'Cuota mensual' },
-        { id: 3, memberId: 3, memberName: 'Carlos López', month: 'Mayo 2025', status: 'Pendiente', amount: '$50', date: '-', paymentMethod: '', notes: 'Cuota mensual', activity: 'Cuota mensual' },
-        { id: 4, memberId: 1, memberName: 'Juan Pérez', month: 'Abril 2025', status: 'Pagado', amount: '$50', date: '2025-04-01', paymentMethod: 'transferencia', notes: 'Cuota mensual', activity: 'Cuota mensual' },
-        { id: 5, memberId: 2, memberName: 'María García', month: 'Mayo 2025', status: 'Pendiente', amount: '$50', date: '-', paymentMethod: '', notes: 'Cuota mensual', activity: 'Cuota mensual' },
-        { id: 6, memberId: 1, memberName: 'Juan Pérez', month: 'Julio 2025', status: 'Pagado', amount: '$80', date: '2025-07-01', paymentMethod: 'efectivo', notes: 'Cuota mensual + Natación', activity: 'Cuota + Actividad' },
-        { id: 7, memberId: 1, memberName: 'Juan Pérez', month: 'Agosto 2025', status: 'Pagado', amount: '$75', date: '2025-08-01', paymentMethod: 'transferencia', notes: 'Cuota mensual + Yoga', activity: 'Cuota + Actividad' }
-    ]);
-    const [members, setMembers] = useState([
-        { id: 1, name: 'Juan Pérez', email: 'juan@email.com', phone: '+1234567890', status: 'Activo', lastPayment: '2025-08-10', activities: ['Natación', 'Yoga'] },
-        { id: 2, name: 'María García', email: 'maria@email.com', phone: '+1234567891', status: 'Activo', lastPayment: '2025-04-01', activities: ['Tenis'] },
-        { id: 3, name: 'Carlos López', email: 'carlos@email.com', phone: '+1234567892', status: 'Inactivo', lastPayment: '2025-02-01', activities: [] }
-    ]);
-    const [instructors] = useState([
-        { id: 1, name: 'Ana García', specialty: 'Yoga', email: 'ana.garcia@club.com', experience: '5 años', status: 'Activo' },
-        { id: 2, name: 'Carlos Mendoza', specialty: 'Natación', email: 'carlos.mendoza@club.com', experience: '8 años', status: 'Activo' },
-        { id: 3, name: 'Laura Pérez', specialty: 'Tenis', email: 'laura.perez@club.com', experience: '3 años', status: 'Activo' }
-    ]);
-    
-    const [staffMembers, setStaffMembers] = useState([
-        { id: 1, name: 'Ana García', specialty: 'Yoga', email: 'ana.garcia@club.com', experience: '5 años', status: 'Activo' },
-        { id: 2, name: 'Carlos Mendoza', specialty: 'Natación', email: 'carlos.mendoza@club.com', experience: '8 años', status: 'Activo' },
-        { id: 3, name: 'Laura Pérez', specialty: 'Tenis', email: 'laura.perez@club.com', experience: '3 años', status: 'Activo' },
-        { id: 4, name: 'Roberto Suárez', specialty: 'Fútbol', email: 'roberto.suarez@club.com', experience: '10 años', status: 'Activo' },
-        { id: 5, name: 'María López', specialty: 'Pilates', email: 'maria.lopez@club.com', experience: '6 años', status: 'Activo' }
-    ]);
-    
-    const [compensations, setCompensations] = useState([
-        { id: 1, staffId: 1, staffName: 'Ana García', amount: '$50', type: 'clase', date: '2025-01-15', description: 'Clase de Yoga', notes: 'Clase regular' },
-        { id: 2, staffId: 1, staffName: 'Ana García', amount: '$75', type: 'bonus', date: '2025-01-20', description: 'Bono por rendimiento', notes: 'Excelente trabajo' },
-        { id: 3, staffId: 2, staffName: 'Carlos Mendoza', amount: '$60', type: 'clase', date: '2025-01-16', description: 'Clase de Natación', notes: 'Clase técnica' }
-    ]);
-    const [paymentFile, setPaymentFile] = useState(null);
-    
-    // Estados para modales del administrador
-    const [showMemberModal, setShowMemberModal] = useState(false);
-    const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [showMemberDataModal, setShowMemberDataModal] = useState(false);
-    const [showMemberActivitiesModal, setShowMemberActivitiesModal] = useState(false);
-    const [showActivityModal, setShowActivityModal] = useState(false);
-    const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
-    const [modalMode, setModalMode] = useState('create'); // 'create', 'edit', 'view'
-    
-    const [newMember, setNewMember] = useState({ name: '', email: '', phone: '' });
-    const [newPayment, setNewPayment] = useState({ memberId: '', amount: '', month: '' });
-    const [selectedMember, setSelectedMember] = useState(null);
-    const [selectedPayment, setSelectedPayment] = useState(null);
-    const [selectedActivity, setSelectedActivity] = useState(null);
-    const [selectedEnrollment, setSelectedEnrollment] = useState(null);
-    
-    const [professorProfile, setProfessorProfile] = useState(instructors.find(i => i.name === 'Prof. Martínez') || { name: 'Prof. Martínez', specialty: '', email: '', experience: '', status: 'Activo' });
-    const [isEditing, setIsEditing] = useState(false);
-    const [selectedSocio, setSelectedSocio] = useState(null);
-    const [userProfile, setUserProfile] = useState({
-      name: 'Juan Pérez',
-      email: 'juan@email.com',
-      phone: '+1234567890',
-      dni: '12345678',
-      address: 'Calle Principal 123, Ciudad',
-      emergencyContact: 'María Pérez',
-      emergencyPhone: '+1234567891',
-      medicalInfo: 'Ninguna condición médica conocida',
-      preferences: 'Actividades de cardio y fuerza, horarios matutinos'
+// Panels
+import HomePanel from "../dashboard/HomePanel";
+import ClassesPanel from "../activities/ClasesPanel";
+import MyClassesPanel from "../activities/MyClasesPanel";
+import PaymentsPanel from "../payments/PaymentsPanel";
+import MembersPanel from "../members/MembersPanel";
+import StaffManagement from "../staff/StaffManagement";
+import ConfigPanel from "../settings/ConfigPanel";
+import AdminActivityManagement from "../activities/AdminActivityManagement";
+
+// Modals
+import MemberModal from "../members/MemberModal";
+import PaymentModal from "../payments/PaymentModal";
+import EnrollmentModal from "../activities/EnrollmentModal";
+
+// Servicios Usuarios (socios)
+import {
+  listarTodosUsuarios,
+  crearUsuario,
+  actualizarUsuario,
+  eliminarUsuario,
+  asignarGrupoUsuario,
+} from "../../services/usuarios";
+
+// Servicios Staff
+import {
+  listarStaff,
+  crearStaff,
+  actualizarStaff as actualizarStaffApi,
+  eliminarStaff as eliminarStaffApi,
+} from "../../services/staff";
+
+// Servicios Actividades
+import {
+  listarActividades,
+  crearActividad,
+  actualizarActividad,
+  eliminarActividad,
+} from "../../services/actividades";
+
+const DEFAULT_PASSWORD = "Club2025!";
+
+const SportsDashboard = ({ initialView = "inicio" }) => {
+  const [userRole, setUserRole] = useState("admin");
+  const [activeView, setActiveView] = useState(initialView);
+  const [notification, setNotification] = useState(null);
+
+  // Datos principales
+  const [members, setMembers] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [activities, setActivities] = useState([]);
+
+  // Totales para el dashboard
+  const [totSocios, setTotSocios] = useState(0);
+  const [totStaff, setTotStaff] = useState(0);
+  const [totAdmins, setTotAdmins] = useState(0);
+
+  // (Opcional) otras secciones
+  const [classes, setClasses] = useState([]);
+  const [myClasses, setMyClasses] = useState([]);
+  const [payments, setPayments] = useState([]);
+
+  // Modales de socios
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [modalMode, setModalMode] = useState("create"); // 'create' | 'edit'
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [newMember, setNewMember] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    dni: "",
+    estado: "Activo",
+  });
+
+  // Otros modales
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+
+  const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState(null);
+
+  useEffect(() => {
+    setActiveView(initialView);
+  }, [initialView]);
+
+  // Carga inicial
+  useEffect(() => {
+    (async () => {
+      try {
+        await Promise.all([cargarUsuarios(), cargarStaff()]);
+        await cargarActividades(); // después de staff para poder mapear instructorName
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const notify = (type, message) => setNotification({ type, message });
+  const clearNotification = () => setNotification(null);
+
+  // -------- Helpers ----------
+  const toSlug = (s) =>
+    (s || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s.]+/g, "")
+      .trim();
+
+  const splitName = (fullName) => {
+    const clean = (fullName || "").trim().replace(/\s+/g, " ");
+    if (!clean) return { first_name: "", last_name: "" };
+    const parts = clean.split(" ");
+    const first_name = parts.shift() || "";
+    const last_name = parts.join(" ");
+    return { first_name, last_name };
+  };
+
+  const usernameBaseFromFullName = (fullName, dni) => {
+    const { first_name, last_name } = splitName(fullName);
+    let base =
+      [toSlug(first_name), toSlug(last_name).split(" ")[0]]
+        .filter(Boolean)
+        .join(".")
+        .replace(/\s+/g, ".");
+    if (!base || base === ".") {
+      if (dni) base = `socio${String(dni).replace(/\D/g, "")}`;
+      else base = `socio${Date.now()}`;
+    }
+    base = base.replace(/\.+/g, ".").replace(/^\./, "").replace(/\.$/, "");
+    if (!base) base = `socio${Date.now()}`;
+    return base;
+  };
+
+  // -------- Adaptadores UI ----------
+  const adaptarSocio = (u) => ({
+    id: u.id,
+    name:
+      (u.first_name || u.last_name)
+        ? `${u.first_name || ""} ${u.last_name || ""}`.trim()
+        : u.username || "Sin nombre",
+    email: u.email || "",
+    phone: u.telefono || "",
+    dni: u.dni || "",
+    status:
+      (u.estado || "activo").toLowerCase() === "activo"
+        ? "Activo"
+        : (u.estado || "").toLowerCase() === "inactivo"
+        ? "Inactivo"
+        : "Baja",
+    lastPayment: "-",
+    activities: [],
+  });
+
+  const adaptarStaff = (u) => {
+    const fullName =
+      (u.first_name || u.last_name)
+        ? `${u.first_name || ""} ${u.last_name || ""}`.trim()
+        : u.username || "Sin nombre";
+
+    const estadoPlano = String(u.estado || "activo").toLowerCase();
+    const status =
+      estadoPlano === "activo" ? "Activo" :
+      estadoPlano === "inactivo" ? "Inactivo" : "Baja";
+
+    return {
+      id: u.id,
+      fullName,
+      name: fullName,
+      email: u.email || "",
+      phone: u.telefono || "",
+      dni: u.dni || "",
+      estado: status,
+      status,
+    };
+  };
+
+  // Selector de staff para actividades
+  const staffOptions = staffMembers.map(s => ({ id: s.id, name: s.fullName || s.name }));
+
+
+  // -------- API: Usuarios (Socios) ----------
+  async function cargarUsuarios() {
+    const usuarios = await listarTodosUsuarios();
+    const socios = usuarios.filter((u) => u.es_socio === true).map(adaptarSocio);
+    setMembers(socios);
+    setTotSocios(socios.length);
+    setTotAdmins(usuarios.filter((u) => !!u.es_admin).length);
+  }
+
+  const crearUsuarioConReintentos = async (payloadBase, base, maxIntentos = 25) => {
+    for (let i = 0; i < maxIntentos; i++) {
+      const username = i === 0 ? base : `${base}${i}`;
+      try {
+        const data = await crearUsuario({ ...payloadBase, username });
+        return { ok: true, usernameCreado: username, data };
+      } catch (e) {
+        const b = e?.response?.data;
+        if (b?.username?.length) continue;
+        throw e;
+      }
+    }
+    throw new Error("No se pudo generar un usuario único. Intenta con otro nombre/DNI.");
+  };
+
+  const handleOpenCreateMember = () => {
+    setModalMode("create");
+    setNewMember({ fullName: "", email: "", phone: "", dni: "", estado: "Activo" });
+    setSelectedMember(null);
+    setShowMemberModal(true);
+  };
+
+  const handleOpenEditMember = (member) => {
+    setModalMode("edit");
+    setSelectedMember(member);
+    setNewMember({
+      fullName: member.name ?? "",
+      email: member.email ?? "",
+      phone: member.phone ?? "",
+      dni: member.dni ?? "",
+      estado: member.status ?? "Activo",
     });
+    setShowMemberModal(true);
+  };
 
-    // Funciones para gestión de socios
-    const handleCreateMember = () => {
-        if (newMember.name && newMember.email && newMember.phone) {
-            const member = {
-                id: members.length + 1,
-                ...newMember,
-                status: 'Activo',
-                lastPayment: '-',
-                activities: []
-            };
-            setMembers([...members, member]);
-            setNewMember({ name: '', email: '', phone: '' });
-            setShowMemberModal(false);
-            setNotification({ type: 'success', message: 'Socio creado exitosamente' });
+  const handleSaveMember = async (formData, mode) => {
+    try {
+      if (mode === "create") {
+        const base = usernameBaseFromFullName(formData.fullName, formData.dni);
+        const { first_name, last_name } = splitName(formData.fullName);
+
+        const payloadBase = {
+          first_name,
+          last_name,
+          email: formData.email,
+          telefono: formData.phone,
+          dni: formData.dni,
+          estado:
+            formData.estado === "Activo" ? "activo" :
+            formData.estado === "Inactivo" ? "inactivo" : "baja",
+          password: DEFAULT_PASSWORD,
+        };
+
+        const res = await crearUsuarioConReintentos(payloadBase, base, 30);
+
+        try {
+          await asignarGrupoUsuario(res.data.id, "socio");
+        } catch (gErr) {
+          console.warn("No se pudo asignar grupo socio:", gErr?.response?.data || gErr);
         }
-    };
 
-    const handleEditMember = () => {
-        if (selectedMember && newMember.name && newMember.email && newMember.phone) {
-            const updatedMembers = members.map(member => 
-                member.id === selectedMember.id 
-                    ? { ...member, ...newMember }
-                    : member
-            );
-            setMembers(updatedMembers);
-            setNewMember({ name: '', email: '', phone: '' });
-            setSelectedMember(null);
-            setShowMemberModal(false);
-            setModalMode('create');
-            setNotification({ type: 'success', message: 'Socio actualizado exitosamente' });
-        }
-    };
-
-    const handleDeleteMember = (memberId) => {
-        const updatedMembers = members.map(member => 
-            member.id === memberId 
-                ? { ...member, status: 'Inactivo' }
-                : member
+        notify(
+          "success",
+          `Socio creado. Usuario: ${res.usernameCreado} (pass: ${DEFAULT_PASSWORD})`
         );
-        setMembers(updatedMembers);
-        setNotification({ type: 'success', message: 'Socio dado de baja exitosamente' });
+      } else if (mode === "edit" && selectedMember) {
+        const { first_name, last_name } = splitName(formData.fullName);
+        await actualizarUsuario(selectedMember.id, {
+          first_name,
+          last_name,
+          email: formData.email,
+          telefono: formData.phone,
+          estado: formData.estado, // el serializer normaliza
+        });
+        notify("success", "Socio actualizado correctamente");
+      }
+      setShowMemberModal(false);
+      await cargarUsuarios();
+    } catch (e) {
+      console.error("Error al guardar:", e?.response?.data || e);
+      const b = e?.response?.data;
+      if (b?.username?.length) notify("error", `Usuario inválido o ya existe: ${b.username[0]}`);
+      else if (b?.email?.length) notify("error", `Email inválido o ya existe: ${b.email[0]}`);
+      else if (b?.dni?.length) notify("error", `DNI inválido o ya existe: ${b.dni[0]}`);
+      else notify("error", "Error al guardar el socio");
+    }
+  };
+
+  const handleDeleteMember = async (memberId) => {
+    const ok = window.confirm("¿Eliminar este socio? Esta acción no se puede deshacer.");
+    if (!ok) return;
+    try {
+      await eliminarUsuario(memberId);
+      notify("success", "Socio eliminado");
+      await cargarUsuarios();
+    } catch (e) {
+      console.error(e);
+      notify("error", "No se pudo eliminar el socio");
+    }
+  };
+
+  // -------- API: Staff ----------
+  async function cargarStaff() {
+    try {
+      const resp = await listarStaff();
+      const data = resp?.data ?? resp ?? {};
+      const items = Array.isArray(data) ? data : (data.results ?? []);
+      const total = typeof data?.count === "number" ? data.count : items.length;
+
+      const staffAdaptado = items.map(adaptarStaff);
+      setStaffMembers(staffAdaptado);
+      setTotStaff(total);
+    } catch (error) {
+      console.error("Error cargando staff:", error);
+      notify("error", "No se pudo cargar la lista de staff");
+    }
+  }
+
+  async function handleCreateStaff(formData) {
+    try {
+      await crearStaff({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        dni: formData.dni,
+        estado: formData.estado || "Activo",
+      });
+      notify("success", "Staff creado correctamente");
+      await cargarStaff();
+    } catch (e) {
+      console.error(e);
+      const b = e?.response?.data;
+      if (b?.username?.length) notify("error", `Usuario inválido o ya existe: ${b.username[0]}`);
+      else if (b?.email?.length) notify("error", `Email inválido o ya existe: ${b.email[0]}`);
+      else if (b?.dni?.length) notify("error", `DNI inválido o ya existe: ${b.dni[0]}`);
+      else if (b?.error) notify("error", b.error);
+      else notify("error", "No se pudo crear el staff");
+    }
+  }
+
+  async function handleEditStaff(staffForm) {
+    try {
+      const { first_name, last_name } = splitName(staffForm.fullName);
+      await actualizarStaffApi(staffForm.id, {
+        first_name,
+        last_name,
+        email: staffForm.email,
+        telefono: staffForm.phone,
+        estado: staffForm.estado,
+      });
+      notify("success", "Staff actualizado correctamente");
+      await cargarStaff();
+    } catch (e) {
+      console.error(e);
+      notify("error", "No se pudo actualizar el staff");
+    }
+  }
+
+  async function handleDeleteStaff(id) {
+    const ok = window.confirm("¿Eliminar este miembro del staff? Esta acción no se puede deshacer.");
+    if (!ok) return;
+    try {
+      await eliminarStaffApi(id);
+      notify("success", "Staff eliminado");
+      await cargarStaff();
+    } catch (e) {
+      console.error(e);
+      notify("error", "No se pudo eliminar el staff");
+    }
+  }
+
+  // -------- API: Actividades ----------
+function fmt(dt) {
+  if (!dt) return "";
+  const d = new Date(dt);
+  if (Number.isNaN(d.getTime())) return dt;
+  return d.toLocaleString("es-AR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+const toDjangoDateTime = (s) => (s ? `${s}:00` : "");
+async function cargarActividades() {
+  const arr = await listarActividades();
+  const withExtras = arr.map(a => {
+    const estadoPlano = (a.estado || "activo").toLowerCase();
+    return {
+      ...a,
+      // nombre y demas llegan directo del backend
+      instructorName:
+        staffMembers.find(s => s.id === a.usuario_staff)?.fullName ||
+        staffMembers.find(s => s.id === a.usuario_staff)?.name || "—",
+      _raw_inicio: a.fecha_hora_inicio,
+      _raw_fin: a.fecha_hora_fin,
+      inicioUI: a.fecha_hora_inicio ? new Date(a.fecha_hora_inicio).toLocaleString("es-AR") : "—",
+      finUI: a.fecha_hora_fin ? new Date(a.fecha_hora_fin).toLocaleString("es-AR") : "—",
+      estadoUI: estadoPlano === "activo" ? "Activo" : "Inactivo",
+    };
+  });
+  setActivities(withExtras);
+}
+
+async function handleSaveActivity(form, mode) {
+  try {
+    const payload = {
+      nombre: form.nombre,
+      descripcion: form.descripcion,
+      cargo_inscripcion: form.cargo_inscripcion,
+      fecha_hora_inicio: form.fecha_hora_inicio,
+      fecha_hora_fin: form.fecha_hora_fin,
+      estado: (form.estado || "activo").toLowerCase(),
+      usuario_staff: form.usuario_staff,
     };
 
-    const handleEditMemberClick = (member) => {
-        setSelectedMember(member);
-        setNewMember({ name: member.name, email: member.email, phone: member.phone });
-        setModalMode('edit');
-        setShowMemberModal(true);
-    };
+    if (mode === "edit" && form.id) {
+      await actualizarActividad(form.id, payload);
+      notify("success", "Actividad actualizada");
+    } else {
+      await crearActividad(payload);
+      notify("success", "Actividad creada");
+    }
+    await cargarActividades();
+  } catch (e) {
+    console.error("Error guardando actividad:", e?.response?.data || e);
+    const b = e?.response?.data;
+    if (b?.nombre?.length) notify("error", b.nombre[0]);
+    else if (b?.estado?.length) notify("error", b.estado[0]);
+    else notify("error", "No se pudo guardar la actividad");
+  }
+}
 
-    const handleViewMemberData = (member) => {
-        setSelectedMember(member);
-        setShowMemberDataModal(true);
-    };
 
-    const handleViewMemberActivities = (member) => {
-        setSelectedMember(member);
-        setShowMemberActivitiesModal(true);
-    };
+async function handleDeleteActivity(id) {
+  const ok = window.confirm("¿Eliminar esta actividad?");
+  if (!ok) return;
+  await eliminarActividad(id);
+  notify("success", "Actividad eliminada");
+  await cargarActividades();
+}
 
-    // Funciones para gestión de pagos
-    const handleCreatePayment = (paymentData, mode) => {
-        if (mode === 'create') {
-            setPayments([...payments, paymentData]);
-            
-            // Actualizar último pago del socio
-            const updatedMembers = members.map(m => 
-                m.id === paymentData.memberId 
-                    ? { ...m, lastPayment: paymentData.date }
-                    : m
-            );
-            setMembers(updatedMembers);
-            
-            setNotification({ type: 'success', message: 'Pago registrado exitosamente' });
-        } else if (mode === 'edit') {
-            const updatedPayments = payments.map(p => 
-                p.id === paymentData.id ? paymentData : p
-            );
-            setPayments(updatedPayments);
-            setNotification({ type: 'success', message: 'Pago actualizado exitosamente' });
-        }
-    };
-
-    const handleValidatePayment = (paymentId) => {
-        const updatedPayments = payments.map(payment => 
-            payment.id === paymentId 
-                ? { ...payment, status: 'Validado' }
-                : payment
+  // -------- Render ----------
+  const renderPanel = () => {
+    switch (activeView) {
+      case "inicio":
+        return (
+          <HomePanel
+            userRole={userRole}
+            myClasses={myClasses}
+            payments={payments}
+            userName={
+              userRole === "admin"
+                ? "Administrador"
+                : userRole === "profesor"
+                ? "Staff"
+                : "Juan Pérez"
+            }
+            totals={{ socios: totSocios, staff: totStaff, admins: totAdmins }}
+          />
         );
-        setPayments(updatedPayments);
-        setNotification({ type: 'success', message: 'Pago validado exitosamente' });
-    };
 
-    const handleEditPayment = (payment) => {
-        setSelectedPayment(payment);
-        setShowPaymentModal(true);
-    };
-
-    // Funciones para gestión de actividades
-    const handleActivitySave = (activityData, mode) => {
-        if (mode === 'create') {
-            const newActivity = {
-                id: classes.length + 1,
-                ...activityData,
-                enrolled: 0,
-                status: 'Activo'
-            };
-            setClasses([...classes, newActivity]);
-            setNotification({ type: 'success', message: 'Actividad creada exitosamente' });
-        } else if (mode === 'edit') {
-            const updatedClasses = classes.map(c => 
-                c.id === selectedActivity.id ? { ...c, ...activityData } : c
-            );
-            setClasses(updatedClasses);
-            setNotification({ type: 'success', message: 'Actividad actualizada exitosamente' });
-        }
-    };
-
-    const handleStaffSave = (staffData, mode) => {
-        if (mode === 'create') {
-            const newStaff = {
-                id: staffMembers.length + 1,
-                ...staffData
-            };
-            setStaffMembers([...staffMembers, newStaff]);
-            setNotification({ type: 'success', message: 'Miembro del staff registrado exitosamente' });
-        } else if (mode === 'edit') {
-            const updatedStaff = staffMembers.map(staff => 
-                staff.id === staffData.id 
-                    ? { ...staff, ...staffData }
-                    : staff
-            );
-            setStaffMembers(updatedStaff);
-            setNotification({ type: 'success', message: 'Miembro del staff actualizado exitosamente' });
-        }
-    };
-
-
-
-    const handleUnsubscribeFromActivity = (memberId, activityName) => {
-        const updatedMembers = members.map(member => 
-            member.id === memberId 
-                ? { ...member, activities: member.activities.filter(act => act !== activityName) }
-                : member
+      case "socios":
+        return (
+          <MembersPanel
+            members={members}
+            onCreateMember={handleOpenCreateMember}
+            onEditMember={handleOpenEditMember}
+            onDeleteMember={handleDeleteMember}
+            showCreateButton={true}
+          />
         );
-        setMembers(updatedMembers);
-        setNotification({ type: 'success', message: 'Socio dado de baja de la actividad exitosamente' });
-    };
 
-    // Función para actualizar el perfil del socio
-    const handleUpdateProfile = (updatedProfile) => {
-        setUserProfile(updatedProfile);
-        setNotification({ type: 'success', message: 'Perfil actualizado exitosamente' });
-    };
-
-    // Función para cancelar inscripciones
-    const handleEnrollmentCancellation = (enrollmentId) => {
-        // Remover de myClasses
-        const updatedMyClasses = myClasses.filter(cls => cls.id !== enrollmentId);
-        setMyClasses(updatedMyClasses);
-        
-        // Actualizar contador de inscritos en la clase principal
-        const updatedClasses = classes.map(cls => 
-            cls.id === enrollmentId 
-                ? { ...cls, enrolled: Math.max(0, (cls.enrolled || 0) - 1) }
-                : cls
+      case "staff":
+        return (
+          <StaffManagement
+            staffMembers={staffMembers}
+            onStaffSave={handleCreateStaff}
+            onEditStaff={handleEditStaff}
+            onDeleteStaff={handleDeleteStaff}
+            showCreateButton={true}
+          />
         );
-        setClasses(updatedClasses);
-        
-        setNotification({ type: 'success', message: 'Inscripción cancelada exitosamente' });
-    };
 
-    // Función para abrir modal de cancelación
-    const handleOpenCancelModal = (enrollment) => {
-        setSelectedEnrollment(enrollment);
-        setShowEnrollmentModal(true);
-    };
+      case "actividades":
+  return (
+    <AdminActivityManagement
+      activities={activities}
+      staffOptions={staffOptions}
+      onActivitySave={handleSaveActivity}
+      onActivityDelete={handleDeleteActivity}
+    />
+  );
 
-    const clearNotification = () => {
-        setNotification(null);
-    };
+case "clases":
+  return <ClassesPanel classes={classes} myClasses={myClasses} />; // ← solo si querés mantener la vista vieja
 
-    const renderPanel = () => {
-        switch (activeView) {
-            case 'inicio':
-                                 return <HomePanel userRole={userRole} myClasses={myClasses} payments={payments} userName={userRole === 'admin' ? 'Administrador' : userRole === 'profesor' ? 'Staff' : 'Juan Pérez'} />;
-            
-            case 'clases':
-                if (userRole === 'socio') {
-                    return <ClassesPanel 
-                        classes={classes} 
-                        myClasses={myClasses} 
-                        onCancelEnrollment={handleOpenCancelModal}
-                    />;
-                } else {
-                    return <AdminActivityManagement classes={classes} onActivitySave={handleActivitySave} />;
-                }
-            
-            case 'misClases':
-                return <MyClassesPanel 
-                    classes={myClasses} 
-                    onCancelEnrollment={handleOpenCancelModal}
-                />;
-            
-            case 'pagos':
-                return (
-                    <PaymentsPanel 
-                        payments={payments} 
-                        paymentFile={paymentFile}
-                        userRole={userRole}
-                        currentUserId={userRole === 'socio' ? 1 : userRole === 'staff' ? 1 : null}
-                        members={members}
-                        classes={classes}
-                    />
-                );
-            
-            case 'staff':
-                if (userRole === 'admin') {
-                    return (
-                        <StaffManagement 
-                            staffMembers={staffMembers} 
-                            onStaffSave={handleStaffSave}
-                        />
-                    );
-                }
-                return <div className="p-6"><h2 className="text-xl font-semibold">Acceso denegado</h2></div>;
-            
-            case 'socios':
-                if (userRole === 'admin') {
-                    return (
-                        <MembersPanel 
-                            members={members}
-                            onViewMemberData={handleViewMemberData}
-                            onViewMemberActivities={handleViewMemberActivities}
-                            onEditMember={handleEditMemberClick}
-                            onDeleteMember={handleDeleteMember}
-                            onCreateMember={() => {
-                                setModalMode('create');
-                                setNewMember({ name: '', email: '', phone: '' });
-                                setShowMemberModal(true);
-                            }}
-                            showCreateButton={true}
-                        />
-                    );
-                }
-                return <MembersPanel members={members} />;
-            
 
-            
-            case 'configuracion':
-                return <ConfigPanel />;
-            
-            case 'crearClase':
-                return (
-                    <div className="p-6">
-                        <h2 className="text-2xl font-bold mb-6">Crear Nueva Clase</h2>
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <form className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Título</label>
-                                    <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Instructor</label>
-                                    <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" value="Prof. Martínez" disabled />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-                                    <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Hora</label>
-                                    <input type="time" className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                );
-            
-            case 'asistencia':
-                return (
-                    <div className="p-6">
-                        <h2 className="text-2xl font-bold mb-6">Registrar Asistencia</h2>
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <select className="w-full px-3 py-2 border border-gray-300 rounded-md mb-4 bg-gray-50" disabled>
-                                <option>Selecciona una clase</option>
-                                {myClasses.map((classItem) => (
-                                    <option key={classItem.id} value={classItem.id}>{classItem.title} - {classItem.date} {classItem.time}</option>
-                                ))}
-                            </select>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Alumnos Presentes</label>
-                                    <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            
-            case 'horario':
-                return (
-                    <div className="p-6">
-                        <h2 className="text-2xl font-bold mb-6">Mi Horario</h2>
-                        <div className="bg-white rounded-lg border border-gray-200 p-6">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Día</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clase</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {myClasses.map((classItem) => (
-                                        <tr key={classItem.id}>
-                                            <td className="px-6 py-4 whitespace-nowrap">{new Date(classItem.date).toLocaleDateString('es-ES', { weekday: 'long' })}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{classItem.time}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{classItem.title}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                );
-            
-            case 'perfil':
-                if (userRole === 'profesor') {
-                    return <ProfessorProfile profile={professorProfile} isEditing={isEditing} setIsEditing={setIsEditing} />;
-                } else if (userRole === 'socio') {
-                    return <ProfilePanel userProfile={userProfile} onUpdateProfile={handleUpdateProfile} />;
-                }
-                return <div className="p-6"><h2 className="text-xl font-semibold">Contenido en desarrollo</h2></div>;
-            
-            case 'staffActivities':
-                return <StaffActivityList myClasses={myClasses} />;
-            
-            case 'staffCompensation':
-                return <StaffCompensation myClasses={myClasses} compensations={compensations} />;
-            
-            default:
-                return <div className="p-6"><h2 className="text-xl font-semibold">Contenido en desarrollo</h2></div>;
-        }
-    };
+      case "misClases":
+        return <MyClassesPanel classes={myClasses} />;
 
-    return (
-        <div className="flex h-screen bg-gray-100">
-            <div className="bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto" style={{ width: '280px' }}>
-                <Sidebar userRole={userRole} activeView={activeView} setActiveView={setActiveView} setUserRole={setUserRole} />
-            </div>
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Header userRole={userRole} activeView={activeView} />
-                {notification && (
-                    <Notification 
-                        type={notification.type} 
-                        message={notification.message} 
-                        onClose={clearNotification}
-                        autoClose={true}
-                        duration={5000}
-                    />
-                )}
-                <main className="flex-1 overflow-y-auto">
-                    {renderPanel()}
-                </main>
-            </div>
-            
-            {/* Modales */}
-            {showMemberModal && (
-                <MemberModal 
-                    newMember={newMember} 
-                    setNewMember={setNewMember} 
-                    setShowMemberModal={setShowMemberModal}
-                    mode={modalMode}
-                    onSave={modalMode === 'create' ? handleCreateMember : handleEditMember}
-                />
-            )}
-            
-            {showPaymentModal && (
-                <PaymentModal
-                    isOpen={showPaymentModal}
-                    onClose={() => setShowPaymentModal(false)}
-                    members={members}
-                    classes={classes}
-                    onSave={handleCreatePayment}
-                    payment={selectedPayment}
-                    mode={selectedPayment ? 'edit' : 'create'}
-                />
-            )}
-            
-            {showMemberDataModal && selectedMember && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Datos del Socio</h2>
-                            <button
-                                onClick={() => setShowMemberDataModal(false)}
-                                className="text-gray-500 hover:text-gray-700 text-2xl"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                                <input type="text" value={selectedMember.name} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                <input type="email" value={selectedMember.email} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                                <input type="tel" value={selectedMember.phone} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                                <span className={`px-2 py-1 text-xs rounded-full ${selectedMember.status === 'Activo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                    {selectedMember.status}
-                                </span>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Último Pago</label>
-                                <input type="text" value={selectedMember.lastPayment} className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" disabled />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-            
-            {showMemberActivitiesModal && selectedMember && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Actividades del Socio</h2>
-                            <button
-                                onClick={() => setShowMemberActivitiesModal(false)}
-                                className="text-gray-500 hover:text-gray-700 text-2xl"
-                            >
-                                ×
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Actividades Inscritas:</h3>
-                            {selectedMember.activities.length > 0 ? (
-                                <div className="space-y-2">
-                                    {selectedMember.activities.map((activity, index) => (
-                                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                            <span>{activity}</span>
-                                            <button
-                                                onClick={() => {
-                                                    handleUnsubscribeFromActivity(selectedMember.id, activity);
-                                                    setShowMemberActivitiesModal(false);
-                                                }}
-                                                className="text-red-600 hover:text-red-800 text-sm"
-                                            >
-                                                Dar de Baja
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-gray-500">No hay actividades inscritas</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+      case "pagos":
+        return <PaymentsPanel payments={payments} members={members} classes={classes} />;
 
-            {/* Modal de Cancelación de Inscripciones */}
-            {showEnrollmentModal && selectedEnrollment && (
-                <EnrollmentModal
-                    isOpen={showEnrollmentModal}
-                    onClose={() => setShowEnrollmentModal(false)}
-                    enrollment={selectedEnrollment}
-                    onCancel={handleEnrollmentCancellation}
-                />
-            )}
-        </div>
-    );
+      case "configuracion":
+        return <ConfigPanel />;
+
+      default:
+        return (
+          <div className="p-6">
+            <h2 className="text-xl font-semibold">Sección en desarrollo</h2>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-100">
+      <div
+        className="bg-white border-r border-gray-200 flex-shrink-0 overflow-y-auto"
+        style={{ width: "280px" }}
+      >
+        <Sidebar
+          userRole={userRole}
+          activeView={activeView}
+          setActiveView={setActiveView}
+          setUserRole={setUserRole}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header userRole={userRole} activeView={activeView} />
+
+        {notification && (
+          <Notification
+            type={notification.type}
+            message={notification.message}
+            onClose={clearNotification}
+            autoClose={true}
+            duration={5000}
+          />
+        )}
+
+        <main className="flex-1 overflow-y-auto">{renderPanel()}</main>
+      </div>
+
+      {/* Modal Socios */}
+      {showMemberModal && (
+        <MemberModal
+          newMember={newMember}
+          setNewMember={setNewMember}
+          setShowMemberModal={setShowMemberModal}
+          mode={modalMode}
+          onSave={(form) => handleSaveMember(form, modalMode)}
+        />
+      )}
+
+      {/* Otros modales que ya tenías */}
+      {showPaymentModal && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          members={members}
+          classes={classes}
+          payment={selectedPayment}
+        />
+      )}
+
+      {showEnrollmentModal && (
+        <EnrollmentModal
+          isOpen={showEnrollmentModal}
+          onClose={() => setShowEnrollmentModal(false)}
+          enrollment={selectedEnrollment}
+        />
+      )}
+    </div>
+  );
 };
 
 export default SportsDashboard;

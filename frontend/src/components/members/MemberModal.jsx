@@ -1,73 +1,142 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
 
-const MemberModal = ({ newMember, setNewMember, setShowMemberModal, mode = 'create', onSave }) => {
+const MemberModal = ({
+  newMember,
+  setNewMember,
+  setShowMemberModal,
+  mode = "create",
+  onSave,
+}) => {
+  const [local, setLocal] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    dni: "",
+    estado: newMember.estado || "Activo", 
+  });
+
+  useEffect(() => {
+    setLocal({
+      fullName: newMember?.fullName || "",
+      email: newMember?.email || "",
+      phone: newMember?.phone || "",
+      dni: newMember?.dni || "",
+      estado: newMember.estado || "Activo",
+    });
+  }, [newMember]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const next = { ...local, [name]: value };
+    setLocal(next);
+    setNewMember?.(next);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave?.(local);
+  };
+
+  const isEdit = mode === "edit";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
-        <h3 className="text-lg font-semibold mb-4">
-          {mode === 'create' ? 'Agregar Nuevo Socio' : 'Editar Socio'}
-        </h3>
-        <div className="space-y-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">
+            {isEdit ? "Editar socio" : "Crear socio"}
+          </h2>
+          <button className="text-2xl" onClick={() => setShowMemberModal(false)}>
+            ×
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* NOMBRE COMPLETO */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-            <input 
-              type="text"
+            <label className="block text-sm font-medium mb-1">Nombre completo</label>
+            <input
+              name="fullName"
+              value={local.fullName}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="Juan Juarez"
               required
-              value={newMember.name}
-              onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nombre completo"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Ejemplo: <b>Juan Juarez</b>
+            </p>
           </div>
+
+          {/* EMAIL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-            <input 
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
               type="email"
+              name="email"
+              value={local.email}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="correo@dominio.com"
               required
-              value={newMember.email}
-              onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="email@ejemplo.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono *</label>
-            <input 
-              type="tel"
-              required
-              value={newMember.phone}
-              onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="+1234567890"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
-            <input 
-              type="text"
-              required
-              value={newMember.dni || ''}
-              onChange={(e) => setNewMember({...newMember, dni: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="12345678"
             />
           </div>
 
-        </div>
-        <div className="mt-6 flex justify-end gap-3">
-          <button 
-            onClick={() => setShowMemberModal(false)}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button 
-            onClick={onSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            {mode === 'create' ? 'Agregar' : 'Guardar Cambios'}
-          </button>
-        </div>
+          {/* TEL */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Teléfono</label>
+            <input
+              name="phone"
+              value={local.phone}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="+54 ..."
+            />
+          </div>
+
+          {/* DNI (bloqueado en edición) */}
+          <div>
+            <label className="block text-sm font-medium mb-1">DNI</label>
+            <input
+              name="dni"
+              value={local.dni}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2"
+              placeholder="12345678"
+              required
+              disabled={isEdit}
+            />
+            {isEdit && (
+              <p className="text-xs text-gray-500 mt-1">
+                El DNI no puede modificarse.
+              </p>
+            )}
+          </div>
+	  <label className="block text-sm font-medium mb-1">Estado</label>
+<select
+  name="estado"
+  value={newMember.estado}
+  onChange={(e) => setNewMember((m) => ({ ...m, estado: e.target.value }))}
+  className="w-full border rounded-lg px-3 py-2 outline-none focus:ring focus:ring-blue-200"
+>
+  <option value="Activo">Activo</option>
+  <option value="Inactivo">Inactivo</option>
+  <option value="Baja">Baja</option>
+</select>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowMemberModal(false)}
+              className="px-3 py-2 border rounded"
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded">
+              {isEdit ? "Guardar" : "Crear"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
