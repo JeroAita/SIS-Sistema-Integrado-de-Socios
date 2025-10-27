@@ -29,12 +29,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'corsheaders',                  # 👈 Habilita CORS
-    'sis_app.apps.SisAppConfig',    # Tu aplicación principal
+    'corsheaders',                  # Habilita CORS
+    'sis_app.apps.SisAppConfig',    # Aplicación principal
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',      # 👈 DEBE ir primero
+    'corsheaders.middleware.CorsMiddleware',      # DEBE ir primero
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -111,8 +111,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 }
 
-# 🔐 Configuración de CORS y CSRF
-CORS_ALLOW_ALL_ORIGINS = True  # 🔧 Permitir todo durante desarrollo
+# Configuración de CORS y CSRF
+CORS_ALLOW_ALL_ORIGINS = True  # Permitir todo durante desarrollo
 # En producción reemplazar por:
 # CORS_ALLOWED_ORIGINS = [
 #     "http://localhost:5173",
