@@ -3,9 +3,9 @@ import React, { useEffect, useState } from "react";
 export default function StaffModal({
   isOpen = false,
   onClose,
-  mode = "create",     // "create" | "edit"
-  staff = null,        // { id, fullName, email, phone, dni, estado }
-  onSave,              // (formData, mode) => void
+  mode = "create",     
+  staff = null,       
+  onSave,              
 }) {
   const isEdit = mode === "edit";
 

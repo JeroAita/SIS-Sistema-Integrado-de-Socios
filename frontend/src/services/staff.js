@@ -1,7 +1,7 @@
-// src/services/staff.js
+
 import api from "./api";
 
-// ✅ Siempre devolvemos un ARRAY (normaliza paginación DRF)
+// devolve un ARRAY 
 export async function listarStaff(params = {}) {
   const res = await api.get("/usuarios/", { params: { grupo: "staff", ...params } });
   const data = res.data;
@@ -10,21 +10,21 @@ export async function listarStaff(params = {}) {
   return [];
 }
 
-// ✅ Crea staff en UNA llamada, enviando los nombres que el backend entiende
+
 export async function crearStaff({ fullName, email, phone, dni, estado }) {
   const res = await api.post("/usuarios/", {
     fullName,
     email,
-    phone,       // el backend mapea phone -> telefono
+    phone,       
     dni,
-    estado,      // "Activo", "Inactivo" o "Baja" (el backend normaliza)
-    grupo: "staff", // 👈 clave: queda en grupo staff en la MISMA request
+    estado,      // "Activo", "Inactivo" o "Baja" 
+    grupo: "staff", // clave: queda en grupo staff en la MISMA request
   });
   return res.data;
 }
 
 export async function actualizarStaff(id, payload) {
-  // Permitimos patch con los mismos nombres (fullName, phone, estado…)
+  
   const res = await api.patch(`/usuarios/${id}/`, payload);
   return res.data;
 }

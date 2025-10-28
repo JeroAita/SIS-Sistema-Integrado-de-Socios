@@ -1,4 +1,4 @@
-import api from "./api"; // tu axios preconfigurado
+import api from "./api"; 
 
 export async function listarActividades(params = {}) {
   const { data } = await api.get("/actividades/", { params });

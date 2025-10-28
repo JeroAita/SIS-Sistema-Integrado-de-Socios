@@ -1,13 +1,13 @@
 import api from "./api";
 
-// Lista todos los usuarios (paginado DRF opcional)
+
 export async function listarTodosUsuarios() {
   const res = await api.get("/usuarios/");
   // si tu API usa paginación de DRF, viene con {count, results}
   return Array.isArray(res.data) ? res.data : res.data.results || [];
 }
 
-// Crea usuario (NO mandamos es_admin/es_staff/es_socio)
+// Crea usuario NO manda es_admin/es_staff/es_socio
 export async function crearUsuario(payload) {
   const res = await api.post("/usuarios/", payload);
   return res.data;

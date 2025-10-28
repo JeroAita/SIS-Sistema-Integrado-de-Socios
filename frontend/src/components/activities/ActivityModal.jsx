@@ -72,14 +72,14 @@ const ActivityModal = ({ isOpen, onClose, mode = "create", activity, staffOption
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // Enviamos tal cual requiere backend (nombres exactos)
+    // Enviamos segun back
     onSave(
       {
         ...(activity?.id ? { id: activity.id } : {}),
         nombre: form.nombre.trim(),
         descripcion: form.descripcion?.trim() ?? "",
         cargo_inscripcion: form.cargo_inscripcion === "" ? null : Number(form.cargo_inscripcion),
-        // datetime-local ya viene como "YYYY-MM-DDTHH:mm" (naive). DRF lo parsea con USE_TZ=True.
+        // datetime-local ya viene como "YYYY-MM-DDTHH:mm" (native)
         fecha_hora_inicio: form.fecha_hora_inicio,
         fecha_hora_fin: form.fecha_hora_fin,
         estado: form.estado, // "activa" | "finalizada" | "archivada"

@@ -1,12 +1,12 @@
 import api from "./api";
 
-// Una página paginada
+// 
 export async function listarUsuariosPagina(page = 1) {
   const { data } = await api.get(`/usuarios/?page=${page}`);
   return data; // { count, next, previous, results }
 }
 
-// Todas las páginas
+//
 export async function listarTodosUsuarios() {
   let page = 1;
   let all = [];
@@ -26,7 +26,7 @@ export async function crearUsuario(payload) {
   return data;
 }
 
-// Actualizar (PATCH parcial; si preferís total usá .put)
+// Actualizar 
 export async function actualizarUsuario(id, payload) {
   const { data } = await api.patch(`/usuarios/${id}/`, payload);
   return data;

@@ -19,10 +19,10 @@ const PaymentModal = ({ isOpen, onClose, members = [], classes = [], onSave, pay
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth();
 
-  // Obtener el socio seleccionado
+  
   const selectedMember = members.find(m => m.id === parseInt(formData.memberId));
   
-  // Obtener las actividades del socio seleccionado
+  
   const memberActivities = selectedMember ? classes.filter(cls => 
     selectedMember.activities.includes(cls.title)
   ) : [];

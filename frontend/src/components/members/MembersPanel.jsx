@@ -8,8 +8,8 @@ const MembersPanel = ({
   onDeleteMember, 
   onCreateMember,
   showCreateButton = false,
-  deleteMember, // Para mantener compatibilidad
-  setShowMemberModal // Para mantener compatibilidad
+  deleteMember, 
+  setShowMemberModal 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
