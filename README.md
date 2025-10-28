@@ -9,7 +9,7 @@ Proyecto propuesto como resolución del trabajo práctico final de la asignatura
 - Mactavish Tomás
 - Rugiero Fausto
 
-Para más información del proyecto, leer la [Documentación](documentacion/documentacion.pdf).
+Para más información del proyecto, leer la [Documentación](documentacion/documentacion-v3.pdf).
 
 Para conocer el back-end, leer su [README](backend/README.md).
 
