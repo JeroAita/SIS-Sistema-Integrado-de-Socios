@@ -5,7 +5,14 @@ from .views import (
     ActividadViewSet,
     InscripcionViewSet,
     CuotaViewSet,
-    CompensacionStaffViewSet
+    CompensacionStaffViewSet,
+    LoginView,
+    LogoutView,
+    UserProfileView
+)
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
 )
 
 # Crear instancia del router
@@ -21,4 +28,11 @@ router.register(r'compensaciones', CompensacionStaffViewSet, basename='compensac
 urlpatterns = [
     # Incluir todas las rutas generadas por el router
     path('', include(router.urls)),
+    # Autenticación personalizada
+    path('auth/login/', LoginView.as_view(), name='login'),
+    path('auth/logout/', LogoutView.as_view(), name='logout'),
+    path('auth/profile/', UserProfileView.as_view(), name='profile'),
+    # JWT estándar (mantener por compatibilidad)
+    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
