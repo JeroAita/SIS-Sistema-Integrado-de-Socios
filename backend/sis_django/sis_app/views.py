@@ -52,7 +52,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         """
-        Crea usuario. Si viene {"grupo": "staff|admin|socio"} en el body,
+        Crea usuario. Si viene {"grupo": "staff"|"admin"|"socio"} en el body,
         asigna el grupo y sincroniza is_staff en la misma llamada.
         """
         serializer = self.get_serializer(data=request.data)

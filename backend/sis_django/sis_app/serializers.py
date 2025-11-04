@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from .models import Usuario, Actividad, Inscripcion, Cuota, CompensacionStaff
 
-
+# --------- serializer especial para Usuario ---------
 class UsuarioSerializer(serializers.ModelSerializer):
     # 1) Hacerlos OPCIONALES en la definición del campo (DRF valida aquí):
     username = serializers.CharField(required=False, allow_blank=True)
@@ -148,7 +148,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
 # --------- resto de serializers ---------
 class ActividadSerializer(serializers.ModelSerializer):
     cantidad_inscriptos = serializers.IntegerField(read_only=True)
@@ -162,7 +161,9 @@ class ActividadSerializer(serializers.ModelSerializer):
 class InscripcionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Inscripcion
-        fields = ["id","fecha_inscripcion","usuario_socio","actividad","estado"]
+        fields = ["id","fecha_inscripcion","usuario_socio","actividad",
+                  "estado","estado_pago"
+        ]
         read_only_fields = ["fecha_inscripcion"]
 
 class CuotaSerializer(serializers.ModelSerializer):

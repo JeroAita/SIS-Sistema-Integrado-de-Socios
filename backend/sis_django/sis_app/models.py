@@ -83,43 +83,18 @@ class Inscripcion(models.Model):
     class EstadoInscripcion(models.TextChoices):
         CONFIRMADA = 'confirmada', 'Confirmada'
         CANCELADA  = 'cancelada', 'Cancelada'
-    
+    class EstadoPago(models.TextChoices):
+        ABONADA = 'abonada', 'Abonada'
+        PENDIENTE = 'pendiente', 'Pendiente'
+
     fecha_inscripcion = models.DateTimeField(auto_now_add=True) # Carga autom. la fecha/hora cuando se crea la instancia.
     usuario_socio = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="inscripciones")
     actividad = models.ForeignKey(Actividad, on_delete=models.CASCADE, related_name="inscripciones")
     estado = models.CharField(max_length=10, choices=EstadoInscripcion.choices, default=EstadoInscripcion.CONFIRMADA)
+    estado_pago = models.CharField(max_length=10, choices=EstadoPago.choices, default=EstadoPago.PENDIENTE)
 
     def __str__(self):
         return f"Inscripción de usuario {self.usuario_socio} a actividad {self.actividad}"
-
-"""
-# Un pago de un socio es una "Cuota"; y un pago a un staff es una "CompensacionStaff". ¿Necesitamos esta clase?
-class Pago(models.Model):
-    class EstadoPago(models.TextChoices):
-        PENDIENTE  = 'pendiente', 'Pendiente'
-        ACREDITADO = 'acreditado', 'Acreditado'
-        RECHAZADO  = 'rechazado', 'Rechazado'
-
-    comprobante_url = models.CharField(max_length=200)
-    fecha_pago      = models.DateTimeField()
-    tipo_pago       = models.CharField(max_length=50) # ¿Qué contiene? ¿El método?
-    monto           = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        help_text="Pesos Argentinos"
-    )
-    usuario         = models.ForeignKey( # ¿Qué usuario? ¿Socio o Staff?
-        Usuario,
-        on_delete=models.CASCADE,
-    )
-    estado          = models.CharField(
-        max_length = 15,
-        choices=EstadoPago.choices,
-        default=EstadoPago.PENDIENTE
-    )
-
-    # def __str__(self):
-"""
 
 class Cuota(models.Model):
     class EstadoCuota(models.TextChoices):
