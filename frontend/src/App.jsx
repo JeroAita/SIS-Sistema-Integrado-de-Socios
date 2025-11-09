@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { useAuth } from "./hooks/useAuth";
 import SportsDashboard from "./components/layout/SportsDashboard";
 import Login from "./components/auth/Login";
 
@@ -43,6 +44,26 @@ const AppRoutes = () => {
           <SportsDashboard initialView="actividades" />
         </ProtectedRoute>
       } />
+      <Route path="/actividades-socio" element={
+        <ProtectedRoute>
+          <SportsDashboard initialView="actividades-socio" />
+        </ProtectedRoute>
+      } />
+      <Route path="/mis-actividades" element={
+        <ProtectedRoute>
+          <SportsDashboard initialView="misActividades" />
+        </ProtectedRoute>
+      } />
+      <Route path="/compensaciones" element={
+        <ProtectedRoute>
+          <SportsDashboard initialView="compensaciones" />
+        </ProtectedRoute>
+      } />
+      <Route path="/perfil" element={
+        <ProtectedRoute>
+          <SportsDashboard initialView="perfil" />
+        </ProtectedRoute>
+      } />
       <Route path="/pagos" element={
         <ProtectedRoute>
           <SportsDashboard initialView="pagos" />
@@ -59,10 +80,10 @@ const AppRoutes = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

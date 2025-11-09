@@ -156,4 +156,18 @@ CORS_ALLOW_ALL_ORIGINS = True  # 🔧 Permitir todo durante desarrollo
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
 ]
+
+# Configuración CSRF para que funcione con cookies
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_HTTPONLY = False  # Permitir que JavaScript acceda al token
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SECURE = False  # Cambiar a True en producción con HTTPS
+
+# 📁 Configuración de archivos multimedia (uploads)
+import os
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

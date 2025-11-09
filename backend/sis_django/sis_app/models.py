@@ -89,7 +89,7 @@ class Inscripcion(models.Model):
 
     fecha_inscripcion = models.DateTimeField(auto_now_add=True) # Carga autom. la fecha/hora cuando se crea la instancia.
     usuario_socio = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name="inscripciones")
-    actividad = models.ForeignKey(Actividad, on_delete=models.CASCADE, related_name="inscripciones")
+    actividad = models.ForeignKey(Actividad, on_delete=models.PROTECT, related_name="inscripciones")
     estado = models.CharField(max_length=10, choices=EstadoInscripcion.choices, default=EstadoInscripcion.CONFIRMADA)
     estado_pago = models.CharField(max_length=10, choices=EstadoPago.choices, default=EstadoPago.PENDIENTE)
 
@@ -98,14 +98,21 @@ class Inscripcion(models.Model):
 
 class Cuota(models.Model):
     class EstadoCuota(models.TextChoices):
-        AL_DIA = "al_dia", "Al_dia"
+        AL_DIA = "al_dia", "Al día"
         ATRASADA = "atrasada", "Atrasada"
+        PENDIENTE_REVISION = "pendiente_revision", "Pendiente de Revisión"
     
     fecha_vencimiento = models.DateTimeField()
     fecha_pago        = models.DateTimeField(null=True, blank=True)
-    valor_base        = models.DecimalField(max_digits=10, decimal_places=2, help_text="Pesos Argentinos")
+    valor_base        = models.DecimalField(max_digits=10, decimal_places=2, help_text="Pesos Argentinos (cuota social)")
     usuario_socio     = models.ForeignKey(Usuario, on_delete=models.PROTECT, related_name="cuotas")
-    estado            = models.CharField(max_length=10, choices=EstadoCuota.choices, default=EstadoCuota.ATRASADA)
+    estado            = models.CharField(max_length=20, choices=EstadoCuota.choices, default=EstadoCuota.ATRASADA)
+    comprobante       = models.FileField(upload_to='comprobantes/', null=True, blank=True, help_text="Comprobante de pago (PDF, JPG, PNG)")
+    
+    # Nuevos campos para rastrear inscripciones
+    inscripciones     = models.ManyToManyField('Inscripcion', blank=True, related_name='cuotas', help_text="Inscripciones incluidas en esta cuota")
+    periodo_mes       = models.IntegerField(null=True, blank=True, help_text="Mes del período (1-12)")
+    periodo_anio      = models.IntegerField(null=True, blank=True, help_text="Año del período")
 
     @property
     def dias_atraso(self):
@@ -116,9 +123,37 @@ class Cuota(models.Model):
             delta = timezone.now() - self.fecha_vencimiento
             return delta.days
         return 0
+    
+    @property
+    def valor_actividades(self):
+        """Calcula el total de las actividades inscritas"""
+        from decimal import Decimal
+        total = Decimal('0.00')
+        for inscripcion in self.inscripciones.all():
+            if inscripcion.actividad and inscripcion.actividad.cargo_inscripcion:
+                total += inscripcion.actividad.cargo_inscripcion
+        return total
+    
+    @property
+    def valor_total(self):
+        """Calcula el valor total de la cuota (base + actividades)"""
+        return self.valor_base + self.valor_actividades
+    
+    @property
+    def periodo(self):
+        """Retorna el período en formato legible"""
+        if self.periodo_mes and self.periodo_anio:
+            meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+            return f"{meses[self.periodo_mes - 1]} {self.periodo_anio}"
+        return f"Vence {self.fecha_vencimiento.strftime('%d/%m/%Y')}"
 
     def __str__(self):
-        return f"Cuota de usuario {self.usuario_socio}"
+        return f"Cuota de {self.usuario_socio} - {self.periodo}"
+    
+    class Meta:
+        ordering = ['-periodo_anio', '-periodo_mes', '-fecha_vencimiento']
+        unique_together = [['usuario_socio', 'periodo_mes', 'periodo_anio']]
 
 class CompensacionStaff(models.Model):
     periodo = models.CharField(max_length=100)
