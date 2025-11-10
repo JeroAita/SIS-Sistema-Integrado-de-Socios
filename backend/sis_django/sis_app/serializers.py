@@ -151,11 +151,29 @@ class UsuarioSerializer(serializers.ModelSerializer):
 # --------- resto de serializers ---------
 class ActividadSerializer(serializers.ModelSerializer):
     cantidad_inscriptos = serializers.IntegerField(read_only=True)
+    inscriptos_detalle = serializers.SerializerMethodField()
+    
     class Meta:
         model = Actividad
         fields = [
             "id","nombre","descripcion","fecha_hora_inicio","fecha_hora_fin",
             "cargo_inscripcion","estado","usuario_staff","cantidad_inscriptos",
+            "inscriptos_detalle",
+        ]
+    
+    def get_inscriptos_detalle(self, obj):
+        """Devuelve detalles de los socios inscritos en esta actividad"""
+        inscripciones = obj.inscripciones.filter(estado='confirmada').select_related('usuario_socio')
+        return [
+            {
+                "id": insc.usuario_socio.id,
+                "nombre": f"{insc.usuario_socio.first_name} {insc.usuario_socio.last_name}".strip() or insc.usuario_socio.username,
+                "email": insc.usuario_socio.email,
+                "telefono": insc.usuario_socio.telefono or "",
+                "estado": insc.usuario_socio.estado,
+                "fecha_inscripcion": insc.fecha_inscripcion.isoformat() if insc.fecha_inscripcion else None,
+            }
+            for insc in inscripciones
         ]
 
 class InscripcionSerializer(serializers.ModelSerializer):
@@ -168,11 +186,38 @@ class InscripcionSerializer(serializers.ModelSerializer):
 
 class CuotaSerializer(serializers.ModelSerializer):
     dias_atraso = serializers.IntegerField(read_only=True)
+    comprobante_url = serializers.SerializerMethodField()
+    valor_actividades = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    valor_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    periodo = serializers.CharField(read_only=True)
+    inscripciones_detalle = serializers.SerializerMethodField()
+    
     class Meta:
         model = Cuota
         fields = [
-            "id","fecha_vencimiento","fecha_pago","valor_base",
-            "usuario_socio","estado","dias_atraso",
+            "id","fecha_vencimiento","fecha_pago","valor_base","valor_actividades","valor_total",
+            "usuario_socio","estado","dias_atraso","comprobante","comprobante_url",
+            "inscripciones","inscripciones_detalle","periodo","periodo_mes","periodo_anio",
+        ]
+    
+    def get_comprobante_url(self, obj):
+        """Devuelve la URL completa del comprobante si existe"""
+        if obj.comprobante:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.comprobante.url)
+            return obj.comprobante.url
+        return None
+    
+    def get_inscripciones_detalle(self, obj):
+        """Devuelve detalles de las inscripciones incluidas en la cuota"""
+        return [
+            {
+                "id": insc.id,
+                "actividad": insc.actividad.nombre if insc.actividad else None,
+                "cargo": float(insc.actividad.cargo_inscripcion) if insc.actividad and insc.actividad.cargo_inscripcion else 0
+            }
+            for insc in obj.inscripciones.all()
         ]
 
 class CompensacionStaffSerializer(serializers.ModelSerializer):

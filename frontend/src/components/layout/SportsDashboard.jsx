@@ -9,16 +9,21 @@ import Notification from "../common/Notification";
 import HomePanel from "../dashboard/HomePanel";
 import ClassesPanel from "../activities/ClasesPanel";
 import MyClassesPanel from "../activities/MyClasesPanel";
+import SocioActividadesPanel from "../activities/SocioActividadesPanel";
 import PaymentsPanel from "../payments/PaymentsPanel";
+import SocioPaymentsPanel from "../payments/SocioPaymentsPanel";
 import MembersPanel from "../members/MembersPanel";
+import ProfilePanel from "../members/ProfilePanel";
 import StaffManagement from "../staff/StaffManagement";
+import StaffActivityList from "../staff/StaffActivityList";
+import StaffCompensacionesPanel from "../staff/StaffCompensacionesPanel";
 import ConfigPanel from "../settings/ConfigPanel";
 import AdminActivityManagement from "../activities/AdminActivityManagement";
 
 // Modals
 import MemberModal from "../members/MemberModal";
-import PaymentModal from "../payments/PaymentModal";
 import EnrollmentModal from "../activities/EnrollmentModal";
+import GenerateCuotasModal from "../payments/GenerateCuotasModal";
 
 // Servicios Usuarios (socios)
 import {
@@ -44,17 +49,55 @@ import {
   actualizarActividad,
   eliminarActividad,
 } from "../../services/actividades";
-import { useAuth } from "../../contexts/AuthContext";
+
+// Servicios Inscripciones
+import {
+  listarInscripciones,
+  crearInscripcion,
+  cancelarInscripcion,
+  obtenerInscripcionesPorSocio,
+  obtenerInscripcionesPorActividad,
+} from "../../services/inscripciones";
+
+// Servicios Cuotas
+import {
+  obtenerCuotasPorSocio,
+  subirComprobantePago,
+  listarCuotas,
+  registrarPagoCuota,
+  aprobarPagoCuota,
+  rechazarPagoCuota,
+  generarCuotas,
+} from "../../services/cuotas";
+
+import { useAuth } from "../../hooks/useAuth";
 const DEFAULT_PASSWORD = "Club2025!";
 
 const SportsDashboard = ({ initialView = "inicio" }) => {
   const [userRole, setUserRole] = useState("");
   const { user } = useAuth();
+  
   useEffect(() => {
     if (user) {
-      setUserRole(user.role);
+      // Determinar el rol basado en los flags del usuario
+      if (user.es_admin) {
+        setUserRole('admin');
+      } else if (user.es_staff) {
+        setUserRole('staff');
+      } else if (user.es_socio) {
+        setUserRole('socio');
+      } else {
+        setUserRole('');
+      }
     }
   }, [user]);
+  
+  // Reiniciar el activeView cuando cambia el usuario
+  useEffect(() => {
+    if (user) {
+      setActiveView(initialView);
+    }
+  }, [user?.id, initialView]);
   const [activeView, setActiveView] = useState(initialView);
   const [notification, setNotification] = useState(null);
 
@@ -72,6 +115,8 @@ const SportsDashboard = ({ initialView = "inicio" }) => {
   const [classes, setClasses] = useState([]);
   const [myClasses, setMyClasses] = useState([]);
   const [payments, setPayments] = useState([]);
+  const [cuotas, setCuotas] = useState([]);
+  const [todasLasCuotas, setTodasLasCuotas] = useState([]); // Para admin
 
   // Modales de socios
   const [showMemberModal, setShowMemberModal] = useState(false);
@@ -86,11 +131,10 @@ const SportsDashboard = ({ initialView = "inicio" }) => {
   });
 
   // Otros modales
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
+  
+  const [showGenerateCuotasModal, setShowGenerateCuotasModal] = useState(false);
 
   useEffect(() => {
     setActiveView(initialView);
@@ -100,8 +144,10 @@ const SportsDashboard = ({ initialView = "inicio" }) => {
   useEffect(() => {
     (async () => {
       try {
-        await Promise.all([cargarUsuarios(), cargarStaff()]);
-        await cargarActividades(); // después de staff para poder mapear instructorName
+        // Cargar usuarios y staff en paralelo
+        const [, staffArray] = await Promise.all([cargarUsuarios(), cargarStaff()]);
+        // Cargar actividades pasando el array de staff directamente
+        await cargarActividades(staffArray);
       } catch (e) {
         console.error(e);
       }
@@ -303,6 +349,33 @@ const SportsDashboard = ({ initialView = "inicio" }) => {
     }
   };
 
+  const handleUpdateProfile = async (profileData) => {
+    if (!user || !user.id) {
+      notify("error", "No hay usuario autenticado");
+      return;
+    }
+    
+    try {
+      const { first_name, last_name } = splitName(profileData.name);
+      await actualizarUsuario(user.id, {
+        first_name,
+        last_name,
+        email: profileData.email,
+        telefono: profileData.phone,
+        // dni no se puede cambiar normalmente
+      });
+      
+      notify("success", "Perfil actualizado correctamente");
+      
+      // El usuario debería recargar la página o el contexto de auth debería refrescarse
+    } catch (e) {
+      console.error("Error al actualizar perfil:", e);
+      const b = e?.response?.data;
+      if (b?.email?.length) notify("error", `Email inválido: ${b.email[0]}`);
+      else notify("error", "No se pudo actualizar el perfil");
+    }
+  };
+
   // -------- API: Staff ----------
   async function cargarStaff() {
     try {
@@ -314,9 +387,11 @@ const SportsDashboard = ({ initialView = "inicio" }) => {
       const staffAdaptado = items.map(adaptarStaff);
       setStaffMembers(staffAdaptado);
       setTotStaff(total);
+      return staffAdaptado; // Retornar el array para usarlo inmediatamente
     } catch (error) {
       console.error("Error cargando staff:", error);
       notify("error", "No se pudo cargar la lista de staff");
+      return [];
     }
   }
 
@@ -384,16 +459,19 @@ function fmt(dt) {
   });
 }
 const toDjangoDateTime = (s) => (s ? `${s}:00` : "");
-async function cargarActividades() {
+async function cargarActividades(staffArray = null) {
   const arr = await listarActividades();
+  // Usar el array pasado por parámetro o el del estado
+  const staffList = staffArray || staffMembers;
+  
   const withExtras = arr.map(a => {
     const estadoPlano = (a.estado || "activo").toLowerCase();
+    const staffMember = staffList.find(s => s.id === a.usuario_staff);
+    
     return {
       ...a,
       // nombre y demas llegan directo del backend
-      instructorName:
-        staffMembers.find(s => s.id === a.usuario_staff)?.fullName ||
-        staffMembers.find(s => s.id === a.usuario_staff)?.name || "—",
+      instructorName: staffMember?.fullName || staffMember?.name || "Por asignar",
       _raw_inicio: a.fecha_hora_inicio,
       _raw_fin: a.fecha_hora_fin,
       inicioUI: a.fecha_hora_inicio ? new Date(a.fecha_hora_inicio).toLocaleString("es-AR") : "—",
@@ -442,10 +520,320 @@ async function handleDeleteActivity(id) {
   await cargarActividades();
 }
 
+  // -------- API: Inscripciones ----------
+  const handleEnrollClass = async (activityId) => {
+    try {
+      if (!user || !user.id) {
+        notify("error", "Debes iniciar sesión para inscribirte");
+        return;
+      }
+
+      // Crear inscripción
+      await crearInscripcion({
+        usuario_socio: user.id,
+        actividad: activityId,
+        estado: "confirmada",
+        estado_pago: "pendiente"
+      });
+
+      notify("success", "Inscripción realizada exitosamente");
+      // Recargar las inscripciones del usuario
+      await cargarInscripcionesUsuario();
+    } catch (e) {
+      console.error("Error al inscribirse:", e?.response?.data || e);
+      const b = e?.response?.data;
+      if (b?.error) notify("error", b.error);
+      else if (b?.detail) notify("error", b.detail);
+      else notify("error", "No se pudo realizar la inscripción");
+    }
+  };
+
+  const handleCancelEnrollment = async (enrollment) => {
+    setSelectedEnrollment(enrollment);
+    setShowEnrollmentModal(true);
+  };
+
+  const handleConfirmCancelEnrollment = async (enrollmentId) => {
+    try {
+      await cancelarInscripcion(enrollmentId);
+      notify("success", "Inscripción cancelada exitosamente");
+      setShowEnrollmentModal(false);
+      await cargarInscripcionesUsuario();
+    } catch (e) {
+      console.error("Error al cancelar inscripción:", e?.response?.data || e);
+      notify("error", "No se pudo cancelar la inscripción");
+    }
+  };
+
+  const cargarInscripcionesUsuario = async () => {
+    if (!user || !user.id) return;
+    try {
+      const inscripciones = await obtenerInscripcionesPorSocio(user.id);
+      // Convertir inscripciones a formato de "myClasses" para la UI
+      const clasesInscritas = inscripciones
+        .filter(i => i.estado === "confirmada")
+        .map(i => {
+          const actividad = activities.find(a => a.id === i.actividad);
+          if (!actividad) return null;
+          
+          // Extraer fecha y hora de inicioUI (formato: "dd/mm/yyyy, hh:mm")
+          const inicioPartes = actividad.inicioUI?.split(',') || [];
+          const fecha = inicioPartes[0]?.trim() || '-';
+          const hora = inicioPartes[1]?.trim() || '-';
+          
+          return {
+            id: i.id,
+            activityId: actividad.id,
+            title: actividad.nombre,
+            description: actividad.descripcion,
+            instructor: actividad.instructorName || 'Por asignar',
+            date: fecha,
+            time: hora,
+            enrollmentFee: `$${actividad.cargo_inscripcion}`,
+            enrolled: actividad.cantidad_inscriptos || 0,
+            capacity: 999, // Si no hay límite
+            estado: i.estado,
+            estado_pago: i.estado_pago
+          };
+        })
+        .filter(Boolean);
+      setMyClasses(clasesInscritas);
+    } catch (e) {
+      console.error("Error cargando inscripciones:", e);
+    }
+  };
+
+  // Cargar inscripciones cuando cambian las actividades o el usuario
+  useEffect(() => {
+    if (activities.length > 0 && user) {
+      cargarInscripcionesUsuario();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activities, user]);
+
+  // -------- API: Cuotas ----------
+  const cargarCuotasUsuario = async () => {
+    if (!user || !user.id) return;
+    try {
+      const cuotasData = await obtenerCuotasPorSocio(user.id);
+      setCuotas(cuotasData);
+    } catch (e) {
+      console.error("Error cargando cuotas:", e);
+    }
+  };
+
+  const handleUploadComprobante = async (cuotaId, file) => {
+    try {
+      await subirComprobantePago(cuotaId, file);
+      notify("success", "Comprobante subido exitosamente. Será revisado por la administración.");
+      await cargarCuotasUsuario(); // Recargar cuotas
+    } catch (e) {
+      console.error("Error al subir comprobante:", e);
+      const b = e?.response?.data;
+      if (b?.error) notify("error", b.error);
+      else if (b?.detail) notify("error", b.detail);
+      else notify("error", "No se pudo subir el comprobante");
+      throw e; // Re-lanzar para que el componente lo maneje
+    }
+  };
+
+  // Cargar cuotas cuando el usuario está disponible
+  useEffect(() => {
+    if (user && user.es_socio) {
+      cargarCuotasUsuario();
+    }
+    if (user && user.es_admin) {
+      cargarTodasLasCuotas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // -------- API: Todas las Cuotas (Admin) ----------
+  const cargarTodasLasCuotas = async () => {
+    try {
+      const cuotasData = await listarCuotas();
+      console.log('📊 Cuotas cargadas:', cuotasData);
+      console.log('📊 Cuotas con comprobante:', cuotasData.filter(c => c.comprobante || c.comprobante_url));
+      setTodasLasCuotas(cuotasData);
+    } catch (e) {
+      console.error("Error cargando todas las cuotas:", e);
+    }
+  };
+
+  const handleRegistrarPago = async (cuotaId) => {
+    try {
+      await registrarPagoCuota(cuotaId, new Date().toISOString());
+      notify("success", "Pago registrado correctamente");
+      await cargarTodasLasCuotas();
+    } catch (e) {
+      console.error("Error al registrar pago:", e);
+      notify("error", "No se pudo registrar el pago");
+    }
+  };
+
+  const handleAprobarPago = async (cuotaId) => {
+    try {
+      await aprobarPagoCuota(cuotaId);
+      notify("success", "Pago aprobado correctamente");
+      await cargarTodasLasCuotas();
+    } catch (e) {
+      console.error("Error al aprobar pago:", e);
+      notify("error", "No se pudo aprobar el pago");
+    }
+  };
+
+  const handleRechazarPago = async (cuotaId) => {
+    try {
+      await rechazarPagoCuota(cuotaId);
+      notify("warning", "Pago rechazado");
+      await cargarTodasLasCuotas();
+    } catch (e) {
+      console.error("Error al rechazar pago:", e);
+      notify("error", "No se pudo rechazar el pago");
+    }
+  };
+
+  const handleGenerarCuotas = async (mes, anio, valorBase, diaVencimiento) => {
+    try {
+      const response = await generarCuotas(mes, anio, valorBase, diaVencimiento);
+      notify("success", `Cuotas generadas: ${response.data.cuotas_creadas} creadas`);
+      // Recargar las cuotas
+      await cargarTodasLasCuotas();
+      return response;
+    } catch (error) {
+      console.error("Error al generar cuotas:", error);
+      notify("error", error.response?.data?.error || "Error al generar cuotas");
+      throw error;
+    }
+  };
+
+  // Convertir cuotas al formato que espera PaymentsPanel
+  const convertirCuotasAPayments = () => {
+    const payments = todasLasCuotas.map(cuota => {
+      const socio = members.find(m => m.id === cuota.usuario_socio);
+      
+      // Determinar el estado basado en el estado de la cuota
+      let status = 'Atrasado';
+      if (cuota.estado === 'al_dia' || cuota.estado === 'al dia') {
+        status = 'Pagado';
+      } else if (cuota.estado === 'pendiente_revision') {
+        status = 'Pendiente';
+      } else if (cuota.estado === 'atrasada') {
+        status = 'Atrasado';
+      }
+      
+      // Formatear fechas
+      const fechaVencimiento = new Date(cuota.fecha_vencimiento);
+      const periodo = fechaVencimiento.toLocaleDateString('es-AR', { 
+        month: 'long', 
+        year: 'numeric' 
+      });
+      const fechaPago = cuota.fecha_pago 
+        ? new Date(cuota.fecha_pago).toLocaleDateString('es-AR', {
+            day: '2-digit',
+            month: '2-digit', 
+            year: 'numeric'
+          })
+        : '-';
+      
+      const payment = {
+        id: cuota.id,
+        memberId: cuota.usuario_socio,
+        memberName: socio?.name || 'Socio desconocido',
+        activity: 'Cuota Mensual',
+        month: periodo, // Período de la cuota
+        period: periodo, // Alias para período
+        amount: `$${cuota.valor_total || cuota.valor_base}`, // Usar valor total si existe
+        valorBase: cuota.valor_base,
+        valorActividades: cuota.valor_actividades || 0,
+        valorTotal: cuota.valor_total || cuota.valor_base,
+        inscripciones: cuota.inscripciones_detalle || [],
+        date: fechaPago, // Fecha en que se pagó
+        dueDate: fechaVencimiento.toLocaleDateString('es-AR', { // Fecha de vencimiento
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }),
+        status: status,
+        paymentMethod: 'transferencia',
+        notes: cuota.comprobante_url ? 'Con comprobante' : 'Sin comprobante',
+        comprobanteUrl: cuota.comprobante_url,
+        diasAtraso: cuota.dias_atraso || 0
+      };
+      
+      return payment;
+    });
+    
+    console.log('💳 Payments convertidos:', payments);
+    console.log('💳 Payments con comprobante:', payments.filter(p => p.comprobanteUrl));
+    console.log('💳 UserRole actual:', userRole);
+    return payments;
+  };
+
+  // Convertir actividades al formato que espera ClasesPanel
+  const convertirActividadesAClases = () => {
+    return activities
+      .filter(a => a.estado === 'activa' || a.estadoUI === 'Activo')
+      .map(a => {
+        const inicioPartes = a.inicioUI?.split(',') || [];
+        const fecha = inicioPartes[0]?.trim() || '-';
+        const hora = inicioPartes[1]?.trim() || '-';
+        
+        return {
+          id: a.id,
+          title: a.nombre,
+          description: a.descripcion,
+          instructor: a.instructorName || 'Por asignar',
+          date: fecha,
+          time: hora,
+          enrollmentFee: `$${a.cargo_inscripcion}`,
+          enrolled: a.cantidad_inscriptos || 0,
+          capacity: 999, // Si no hay límite definido
+          inscriptosDetalle: a.inscriptos_detalle || [] // Detalles de socios inscritos
+        };
+      });
+  };
+
+  // Obtener próximas 5 actividades desde hoy
+  const getUpcomingActivities = useMemo(() => {
+    const now = new Date();
+    return activities
+      .filter(a => {
+        // Filtrar solo actividades activas
+        if (a.estado !== 'activa' && a.estadoUI !== 'Activo') return false;
+        
+        // Verificar que tengan fecha de inicio
+        if (!a._raw_inicio) return false;
+        
+        // Filtrar solo actividades futuras o de hoy
+        const fechaInicio = new Date(a._raw_inicio);
+        return fechaInicio >= now;
+      })
+      .sort((a, b) => {
+        // Ordenar por fecha de inicio (más cercana primero)
+        const fechaA = new Date(a._raw_inicio);
+        const fechaB = new Date(b._raw_inicio);
+        return fechaA - fechaB;
+      })
+      .slice(0, 5); // Tomar solo las primeras 5
+  }, [activities]);
+
   // -------- Render ----------
   const renderPanel = () => {
     switch (activeView) {
       case "inicio":
+        // Determinar qué actividades mostrar según el rol
+        let myActivitiesForDashboard = [];
+        if (userRole === "staff") {
+          // Staff ve sus propias actividades
+          myActivitiesForDashboard = convertirActividadesAClases().filter(a => 
+            a.instructor === `${user.first_name} ${user.last_name}`.trim()
+          );
+        } else if (userRole === "socio") {
+          // Socio ve sus actividades inscritas
+          myActivitiesForDashboard = myClasses;
+        }
+
         return (
           <HomePanel
             userRole={userRole}
@@ -455,6 +843,8 @@ async function handleDeleteActivity(id) {
               user ? `${user.first_name} ${user.last_name}` : "Usuario"
             }
             totals={{ socios: totSocios, staff: totStaff, admins: totAdmins }}
+            upcomingActivities={getUpcomingActivities}
+            myActivities={myActivitiesForDashboard}
           />
         );
 
@@ -490,15 +880,77 @@ async function handleDeleteActivity(id) {
     />
   );
 
-case "clases":
-  return <ClassesPanel classes={classes} myClasses={myClasses} />; // ← solo si querés mantener la vista vieja
+case "actividades-socio":
+  // Vista unificada para socios: todas las actividades
+  return (
+    <SocioActividadesPanel
+      allActivities={convertirActividadesAClases()}
+      myEnrollments={myClasses}
+      onEnroll={handleEnrollClass}
+      onCancelEnrollment={handleCancelEnrollment}
+    />
+  );
 
+      case "misActividades":
+        // Vista para staff - actividades que dicta
+        return (
+          <StaffActivityList 
+            myClasses={convertirActividadesAClases()}
+          />
+        );
 
-      case "misClases":
-        return <MyClassesPanel classes={myClasses} />;
+      case "compensaciones":
+        // Vista para staff - compensaciones
+        return (
+          <StaffCompensacionesPanel 
+            activities={convertirActividadesAClases()}
+          />
+        );
+
+      case "perfil":
+        // Vista de perfil para socio
+        const userProfileData = {
+          name: user ? `${user.first_name} ${user.last_name}` : '',
+          email: user?.email || '',
+          phone: user?.telefono || '',
+          dni: user?.dni || '',
+          address: user?.address || ''
+        };
+        
+        return (
+          <ProfilePanel 
+            userProfile={userProfileData}
+            onUpdateProfile={handleUpdateProfile}
+          />
+        );
 
       case "pagos":
-        return <PaymentsPanel payments={payments} members={members} classes={classes} />;
+        // Vista diferente según el rol
+        if (user?.es_socio) {
+          return (
+            <SocioPaymentsPanel 
+              cuotas={cuotas}
+              onUploadComprobante={handleUploadComprobante}
+            />
+          );
+        } else {
+          // Admin o Staff
+          return (
+            <PaymentsPanel 
+              payments={convertirCuotasAPayments()} 
+              members={members} 
+              classes={classes}
+              userRole={userRole}
+              currentUserId={user?.id}
+              onAprobarPago={handleAprobarPago}
+              onRechazarPago={handleRechazarPago}
+              onRegistrarPago={async () => {
+                await cargarTodasLasCuotas();
+              }}
+              onGenerarCuotas={() => setShowGenerateCuotasModal(true)}
+            />
+          );
+        }
 
       case "configuracion":
         return <ConfigPanel />;
@@ -553,22 +1005,20 @@ case "clases":
         />
       )}
 
-      {/* Otros modales que ya tenías */}
-      {showPaymentModal && (
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => setShowPaymentModal(false)}
-          members={members}
-          classes={classes}
-          payment={selectedPayment}
-        />
-      )}
-
       {showEnrollmentModal && (
         <EnrollmentModal
           isOpen={showEnrollmentModal}
           onClose={() => setShowEnrollmentModal(false)}
           enrollment={selectedEnrollment}
+          onCancel={handleConfirmCancelEnrollment}
+        />
+      )}
+
+      {showGenerateCuotasModal && (
+        <GenerateCuotasModal
+          isOpen={showGenerateCuotasModal}
+          onClose={() => setShowGenerateCuotasModal(false)}
+          onGenerate={handleGenerarCuotas}
         />
       )}
     </div>

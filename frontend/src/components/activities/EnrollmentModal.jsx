@@ -2,7 +2,7 @@ import React from 'react';
 
 const EnrollmentModal = ({ isOpen, onClose, enrollment, onCancel }) => {
   const handleCancel = () => {
-    if (window.confirm('¿Estás seguro de que quieres cancelar tu inscripción a esta clase?')) {
+    if (window.confirm('¿Estás seguro de que quieres cancelar tu inscripción a esta actividad?')) {
       onCancel(enrollment.id);
       onClose();
     }
@@ -31,7 +31,7 @@ const EnrollmentModal = ({ isOpen, onClose, enrollment, onCancel }) => {
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium text-red-700">Clase:</span>
+                <span className="font-medium text-red-700">Actividad:</span>
                 <p className="text-red-900">{enrollment.title}</p>
               </div>
               <div>
@@ -56,11 +56,11 @@ const EnrollmentModal = ({ isOpen, onClose, enrollment, onCancel }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
               <p className="text-yellow-800 font-medium">
-                ¿Estás seguro de que quieres cancelar tu inscripción a esta clase?
+                ¿Estás seguro de que quieres cancelar tu inscripción a esta actividad?
               </p>
             </div>
             <p className="text-yellow-700 text-sm mt-2">
-              Esta acción no se puede deshacer. Perderás tu lugar en la clase.
+              Esta acción no se puede deshacer. Perderás tu lugar en la actividad.
             </p>
           </div>
 

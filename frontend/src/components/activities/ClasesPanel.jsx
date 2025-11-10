@@ -61,72 +61,59 @@ const ClassesPanel = ({ classes, enrollClass, myClasses, onCancelEnrollment }) =
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Clases Disponibles</h2>
-        <div className="text-sm text-gray-600">
-          Total: {filteredClasses.length} clases
+        <h2 className="text-2xl font-bold">Actividades Disponibles</h2>
+        <div className="flex items-center gap-4">
+          <input 
+            type="text"
+            placeholder="Buscar actividad..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg w-64"
+          />
         </div>
       </div>
 
-      {/* Controles de Filtrado y Búsqueda */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
-            <input
-              type="text"
-              placeholder="Buscar por título, instructor o descripción..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+      {/* Controles de Filtrado */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={filterInstructor}
+            onChange={(e) => setFilterInstructor(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          >
+            <option value="todos">Todos</option>
+            {instructors.map(instructor => (
+              <option key={instructor} value={instructor}>{instructor}</option>
+            ))}
+          </select>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Instructor</label>
-            <select
-              value={filterInstructor}
-              onChange={(e) => setFilterInstructor(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="todos">Todos los Instructores</option>
-              {instructors.map(instructor => (
-                <option key={instructor} value={instructor}>{instructor}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          >
+            <option value="title">Ordenar por: Título</option>
+            <option value="instructor">Ordenar por: Instructor</option>
+            <option value="date">Ordenar por: Fecha</option>
+          </select>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ordenar por</label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="title">Título</option>
-              <option value="instructor">Instructor</option>
-              <option value="date">Fecha</option>
-              <option value="enrolled">Inscritos</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="flex justify-end">
           <button
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            title={sortOrder === 'asc' ? 'Orden Ascendente' : 'Orden Descendente'}
           >
-            {sortOrder === 'asc' ? '↑ Ascendente' : '↓ Descendente'}
+            {sortOrder === 'asc' ? '↑' : '↓'}
           </button>
         </div>
       </div>
 
-      {/* Tabla de Clases */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+      {/* Tabla de Actividades */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Clase
+                Actividad
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Instructor
@@ -134,7 +121,6 @@ const ClassesPanel = ({ classes, enrollClass, myClasses, onCancelEnrollment }) =
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Fecha y Hora
               </th>
-
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Costo
               </th>
@@ -149,7 +135,7 @@ const ClassesPanel = ({ classes, enrollClass, myClasses, onCancelEnrollment }) =
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredClasses.length > 0 ? (
               filteredClasses.map((classItem) => {
-                const isEnrolled = myClasses.some(c => c.id === classItem.id);
+                const isEnrolled = myClasses.some(c => c.activityId === classItem.id);
                 const isFull = classItem.enrolled >= classItem.capacity;
                 
                 return (
@@ -216,8 +202,8 @@ const ClassesPanel = ({ classes, enrollClass, myClasses, onCancelEnrollment }) =
               <tr>
                 <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
                   {searchTerm || filterInstructor !== 'todos' 
-                    ? 'No se encontraron clases con esos criterios' 
-                    : 'No hay clases disponibles'
+                    ? 'No se encontraron actividades con esos criterios' 
+                    : 'No hay actividades disponibles'
                   }
                 </td>
               </tr>

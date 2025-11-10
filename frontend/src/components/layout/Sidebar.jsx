@@ -10,7 +10,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 const Sidebar = () => {
 
@@ -27,21 +27,21 @@ const Sidebar = () => {
       { id: "socios", label: "Socios", icon: Users, path: "/socios" },
       { id: "staff", label: "Staff", icon: User, path: "/staff" },
       { id: "actividades", label: "Actividades", icon: Calendar, path: "/actividades" },
-
       { id: "pagos", label: "Pagos", icon: DollarSign, path: "/pagos" },
       { id: "configuracion", label: "Configuración", icon: Settings, path: "/configuracion" },
     )
   }
   if (user.es_staff) {
     items.push(
+      { id: "dashboard", label: "Dashboard", icon: Home, path: "/" },
       { id: "staffActivities", label: "Mis Actividades", icon: Calendar, path: "/mis-actividades" },
       { id: "staffCompensation", label: "Compensaciones", icon: DollarSign, path: "/compensaciones" },
     );
   }
   if (user.es_socio) {
     items.push(
-      { id: "clases", label: "Clases Disponibles", icon: Calendar, path: "/clases" },
-      { id: "misClases", label: "Mis Clases", icon: Home, path: "/mis-clases" },
+      { id: "dashboard", label: "Dashboard", icon: Home, path: "/" },
+      { id: "actividades-socio", label: "Actividades", icon: Calendar, path: "/actividades-socio" },
       { id: "pagos", label: "Pagos de Cuota", icon: DollarSign, path: "/pagos" },
       { id: "perfil", label: "Mi Perfil", icon: User, path: "/perfil" },
     );

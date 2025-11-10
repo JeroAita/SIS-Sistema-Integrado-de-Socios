@@ -10,6 +10,7 @@ from django.db.utils import IntegrityError as DBIntegrityError
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.http import HttpResponse
+from django.middleware.csrf import get_token
 
 
 from .models import Usuario, Actividad, Inscripcion, Cuota, CompensacionStaff
@@ -235,6 +236,208 @@ class CuotaViewSet(viewsets.ModelViewSet):
         cuotas = Cuota.objects.filter(estado="atrasada")
         return Response(self.get_serializer(cuotas, many=True).data)
 
+    @action(detail=True, methods=["post"])
+    def subir_comprobante(self, request, pk=None):
+        cuota = self.get_object()
+        
+        # Verificar que la cuota no esté ya pagada
+        if cuota.estado == "al_dia":
+            return Response({"error": "Esta cuota ya está pagada"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar que haya un archivo
+        if 'comprobante' not in request.FILES:
+            return Response({"error": "No se envió ningún archivo"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        archivo = request.FILES['comprobante']
+        
+        # Validar tipo de archivo
+        extension = archivo.name.split('.')[-1].lower()
+        tipos_validos = ['pdf', 'jpg', 'jpeg', 'png']
+        if extension not in tipos_validos:
+            return Response({
+                "error": f"Tipo de archivo no válido. Solo se permiten: {', '.join(tipos_validos)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validar tamaño (3MB = 3 * 1024 * 1024 bytes)
+        max_size = 3 * 1024 * 1024
+        if archivo.size > max_size:
+            return Response({
+                "error": "El archivo no debe superar los 3MB"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Guardar el comprobante y cambiar estado a pendiente de revisión
+        cuota.comprobante = archivo
+        cuota.estado = "pendiente_revision"
+        cuota.save()
+        
+        return Response({
+            "mensaje": "Comprobante subido exitosamente. Será revisado por la administración.",
+            "cuota": self.get_serializer(cuota).data
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["post"])
+    def aprobar_pago(self, request, pk=None):
+        """Endpoint para que el admin apruebe un pago (con o sin comprobante)"""
+        from django.utils import timezone
+        cuota = self.get_object()
+        
+        if cuota.estado == "al_dia":
+            return Response({"error": "Esta cuota ya está aprobada"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Aprobar el pago (puede ser con o sin comprobante)
+        # Si el admin aprueba manualmente, no hay comprobante
+        # Si el socio subió comprobante y el admin lo aprueba, sí hay comprobante
+        cuota.fecha_pago = timezone.now()
+        cuota.estado = "al_dia"
+        cuota.save()
+        
+        return Response({
+            "mensaje": "Pago aprobado exitosamente",
+            "cuota": self.get_serializer(cuota).data
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=["post"])
+    def rechazar_pago(self, request, pk=None):
+        """Endpoint para que el admin rechace un pago"""
+        cuota = self.get_object()
+        
+        if not cuota.comprobante:
+            return Response({"error": "No hay comprobante para rechazar"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Rechazar: eliminar comprobante y volver a atrasada
+        cuota.comprobante.delete()
+        cuota.comprobante = None
+        cuota.estado = "atrasada"
+        cuota.save()
+        
+        return Response({
+            "mensaje": "Comprobante rechazado. El socio deberá subir uno nuevo.",
+            "cuota": self.get_serializer(cuota).data
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["post"])
+    def generar_cuotas(self, request):
+        """
+        Genera cuotas para todos los socios activos del mes especificado.
+        Incluye las inscripciones activas de cada socio.
+        
+        Body:
+        {
+            "mes": 12,           # 1-12
+            "anio": 2024,
+            "valor_base": 5000,  # Valor de la cuota social
+            "dia_vencimiento": 10  # Día del mes de vencimiento
+        }
+        """
+        from django.utils import timezone
+        from datetime import datetime
+        from decimal import Decimal
+        
+        # Validar datos
+        mes = request.data.get('mes')
+        anio = request.data.get('anio')
+        valor_base = request.data.get('valor_base')
+        dia_vencimiento = request.data.get('dia_vencimiento', 10)
+        
+        if not all([mes, anio, valor_base]):
+            return Response({
+                "error": "Faltan parámetros requeridos: mes, anio, valor_base"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            mes = int(mes)
+            anio = int(anio)
+            valor_base = Decimal(str(valor_base))
+            dia_vencimiento = int(dia_vencimiento)
+            
+            if not (1 <= mes <= 12):
+                raise ValueError("El mes debe estar entre 1 y 12")
+            if not (1 <= dia_vencimiento <= 28):
+                raise ValueError("El día debe estar entre 1 y 28")
+        except (ValueError, TypeError) as e:
+            return Response({"error": f"Parámetros inválidos: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Fecha de vencimiento
+        try:
+            fecha_vencimiento = datetime(anio, mes, dia_vencimiento, 23, 59, 59)
+            fecha_vencimiento = timezone.make_aware(fecha_vencimiento)
+        except ValueError as e:
+            return Response({"error": f"Fecha inválida: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Obtener todos los socios activos
+        # Nota: es_socio es una property, no un campo DB, así que filtramos por grupo
+        socios = Usuario.objects.filter(
+            groups__name='socio',
+            estado='activo'
+        ).distinct()
+        
+        cuotas_creadas = []
+        cuotas_existentes = []
+        errores = []
+        
+        for socio in socios:
+            try:
+                # Verificar si ya existe una cuota para este período
+                cuota_existente = Cuota.objects.filter(
+                    usuario_socio=socio,
+                    periodo_mes=mes,
+                    periodo_anio=anio
+                ).first()
+                
+                if cuota_existente:
+                    cuotas_existentes.append({
+                        "socio": f"{socio.first_name} {socio.last_name}",
+                        "cuota_id": cuota_existente.id
+                    })
+                    continue
+                
+                # Crear la cuota
+                cuota = Cuota.objects.create(
+                    usuario_socio=socio,
+                    fecha_vencimiento=fecha_vencimiento,
+                    valor_base=valor_base,
+                    estado="atrasada",
+                    periodo_mes=mes,
+                    periodo_anio=anio
+                )
+                
+                # Obtener inscripciones activas del socio
+                inscripciones = Inscripcion.objects.filter(
+                    usuario_socio=socio,
+                    estado='confirmada'
+                )
+                
+                # Agregar inscripciones a la cuota
+                cuota.inscripciones.set(inscripciones)
+                cuota.save()
+                
+                cuotas_creadas.append({
+                    "socio": f"{socio.first_name} {socio.last_name}",
+                    "cuota_id": cuota.id,
+                    "valor_base": float(cuota.valor_base),
+                    "valor_actividades": float(cuota.valor_actividades),
+                    "valor_total": float(cuota.valor_total),
+                    "num_inscripciones": inscripciones.count()
+                })
+                
+            except Exception as e:
+                errores.append({
+                    "socio": f"{socio.first_name} {socio.last_name}",
+                    "error": str(e)
+                })
+        
+        return Response({
+            "mensaje": f"Proceso completado",
+            "cuotas_creadas": len(cuotas_creadas),
+            "cuotas_existentes": len(cuotas_existentes),
+            "errores": len(errores),
+            "detalle": {
+                "creadas": cuotas_creadas,
+                "existentes": cuotas_existentes,
+                "errores": errores
+            }
+        }, status=status.HTTP_201_CREATED)
+
 
 # =====================================================
 #        COMPENSACIONES STAFF
@@ -287,6 +490,9 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        # Asegurar que se envíe el token CSRF
+        get_token(request)
+        
         username = request.data.get('username')
         password = request.data.get('password')
         
@@ -306,14 +512,15 @@ class LoginView(APIView):
             'refresh': str(refresh)
         })
         
-        # Setear cookies
+        # Setear cookies de autenticación
         response.set_cookie(
             'access_token',
             str(access_token),
             max_age=3600,  # 1 hora
             httponly=True,
             secure=False,  # Cambiar a True en producción con HTTPS
-            samesite='Lax'
+            samesite='Lax',
+            path='/'
         )
         
         response.set_cookie(
@@ -322,7 +529,8 @@ class LoginView(APIView):
             max_age=604800,  # 7 días
             httponly=True,
             secure=False,  # Cambiar a True en producción con HTTPS
-            samesite='Lax'
+            samesite='Lax',
+            path='/'
         )
         
         return response
@@ -334,9 +542,28 @@ class LogoutView(APIView):
     def post(self, request):
         response = Response({'message': 'Logout exitoso'})
         
-        # Limpiar cookies
-        response.delete_cookie('access_token')
-        response.delete_cookie('refresh_token')
+        # Limpiar cookies con las mismas opciones que se usaron para setearlas
+        # Importante: usar max_age=0 para forzar la eliminación inmediata
+        response.set_cookie(
+            'access_token',
+            '',
+            max_age=0,
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+            httponly=True,
+            secure=False,
+            samesite='Lax'
+        )
+        response.set_cookie(
+            'refresh_token',
+            '',
+            max_age=0,
+            expires='Thu, 01 Jan 1970 00:00:00 GMT',
+            path='/',
+            httponly=True,
+            secure=False,
+            samesite='Lax'
+        )
         
         return response
 
@@ -345,6 +572,9 @@ class UserProfileView(APIView):
     permission_classes = [AllowAny]
     
     def get(self, request):
+        # Asegurar que se envíe el token CSRF
+        get_token(request)
+        
         # Verificar si hay token en las cookies
         access_token = request.COOKIES.get('access_token')
         if not access_token:

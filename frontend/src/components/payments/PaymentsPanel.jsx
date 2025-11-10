@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import PaymentModal from './PaymentModal';
 
-const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile, userRole, currentUserId, members = [], classes = [] }) => {
+const PaymentsPanel = ({ 
+  payments, 
+  handleFileUpload, 
+  submitPayment, 
+  paymentFile, 
+  userRole, 
+  currentUserId, 
+  members = [], 
+  classes = [],
+  onAprobarPago,
+  onRechazarPago,
+  onRegistrarPago,
+  onGenerarCuotas
+}) => {
   const [filterStatus, setFilterStatus] = useState('todos');
   const [filterMonth, setFilterMonth] = useState('todos');
-  const [filterMethod, setFilterMethod] = useState('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -16,10 +28,6 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
-  const paymentMethods = [
-    'efectivo', 'transferencia'
   ];
 
   // Filtrar pagos según el rol del usuario
@@ -74,22 +82,25 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
   const getFilteredPayments = () => {
     let filtered = roleFilteredPayments.filter(payment => {
       const matchesStatus = filterStatus === 'todos' || payment.status === filterStatus;
-      const matchesMethod = filterMethod === 'todos' || payment.paymentMethod === filterMethod;
-              const matchesSearch = payment.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = payment.memberName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                              (payment.activity && payment.activity.toLowerCase().includes(searchTerm.toLowerCase())) ||
                              payment.month.toLowerCase().includes(searchTerm.toLowerCase());
       
       let matchesMonth = true;
       if (filterMonth !== 'todos') {
-        if (payment.date && payment.date !== '-') {
-          const paymentDate = new Date(payment.date);
-          matchesMonth = paymentDate.getMonth() === parseInt(filterMonth);
+        // Filtrar por el período de la cuota, no por la fecha de pago
+        if (payment.period || payment.month) {
+          const periodoTexto = (payment.period || payment.month).toLowerCase();
+          const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                        'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+          const mesSeleccionado = meses[parseInt(filterMonth)];
+          matchesMonth = periodoTexto.includes(mesSeleccionado);
         } else {
           matchesMonth = false;
         }
       }
       
-      return matchesStatus && matchesMethod && matchesSearch && matchesMonth;
+      return matchesStatus && matchesSearch && matchesMonth;
     });
 
     // Ordenar
@@ -150,6 +161,11 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
   // Mostrar controles según el rol
   const shouldShowAdminControls = userRole === 'admin';
   const shouldShowCharts = userRole === 'admin' || userRole === 'staff';
+  
+  // Log para depuración
+  console.log('🔑 PaymentsPanel - userRole:', userRole);
+  console.log('🔑 PaymentsPanel - shouldShowAdminControls:', shouldShowAdminControls);
+  console.log('🔑 PaymentsPanel - Total payments:', payments.length);
 
   // Función para abrir el modal de detalle de pago
   const handleOpenPaymentDetail = (payment) => {
@@ -157,32 +173,32 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
     setShowPaymentDetailModal(true);
   };
 
-  // Función para manejar la creación de pagos
-  const handleCreatePayment = (paymentData, mode) => {
-    if (mode === 'create') {
-      // Aquí se agregaría la lógica para crear el pago
-      console.log('Crear pago:', paymentData);
-      setShowPaymentModal(false);
-    } else if (mode === 'edit') {
-      // Aquí se agregaría la lógica para editar el pago
-      console.log('Editar pago:', paymentData);
-      setShowPaymentModal(false);
-    }
-  };
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">{getPanelTitle()}</h2>
-        {shouldShowAdminControls && (
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 flex items-center"
-          >
-            <span className="mr-2">+</span>
-            Registrar Pago
-          </button>
-        )}
+        <div className="flex items-center gap-4">
+          {shouldShowAdminControls && (
+            <>
+              <button
+                onClick={onGenerarCuotas}
+                className="bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 flex items-center"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Generar Cuotas
+              </button>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 flex items-center"
+              >
+                <span className="mr-2">+</span>
+                Aprobar Pago
+              </button>
+            </>
+          )}
+        </div>
       </div>
       
       {/* Métricas Principales - Simplificadas para socio */}
@@ -256,196 +272,71 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
         </div>
       </div>
 
-      {/* Controles de Filtrado y Búsqueda - Simplificados para socio */}
+      {/* Controles de Filtrado - Compactos */}
       {userRole !== 'socio' && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="todos">Todos los Estados</option>
-                <option value="Pagado">Pagado</option>
-                <option value="Pendiente">Pendiente</option>
-                <option value="Atrasado">Atrasado</option>
-              </select>
-            </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option value="todos">Todos los Estados</option>
+              <option value="Pagado">Pagado</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="Atrasado">Atrasado</option>
+            </select>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Método</label>
-              <select
-                value={filterMethod}
-                onChange={(e) => setFilterMethod(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="todos">Todos los Métodos</option>
-                {paymentMethods.map(method => (
-                  <option key={method} value={method}>
-                    {method.charAt(0).toUpperCase() + method.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option value="todos">Todos los Meses</option>
+              {months.map((month, index) => (
+                <option key={index} value={index}>{month}</option>
+              ))}
+            </select>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mes</label>
-              <select
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="todos">Todos los Meses</option>
-                {months.map((month, index) => (
-                  <option key={index} value={index}>{month}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            >
+              <option value="date">Ordenar por: Fecha</option>
+              <option value="amount">Ordenar por: Monto</option>
+              <option value="memberName">Ordenar por: Socio</option>
+              <option value="status">Ordenar por: Estado</option>
+            </select>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Ordenar por</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="date">Fecha</option>
-                <option value="amount">Monto</option>
-                <option value="memberName">Socio</option>
-                <option value="status">Estado</option>
-              </select>
-            </div>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-3 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              title={sortOrder === 'asc' ? 'Orden Ascendente' : 'Orden Descendente'}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+
           </div>
-
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
-              <input
-                type="text"
-                placeholder="Buscar por socio o actividad..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                {sortOrder === 'asc' ? '↑ Ascendente' : '↓ Descendente'}
-              </button>
-              {shouldShowCharts && (
-                <button
-                  onClick={() => setShowCharts(!showCharts)}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  {showCharts ? 'Ocultar Gráficos' : 'Ver Gráficos'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Gráficos y Visualizaciones - Solo para admin y staff */}
-      {showCharts && shouldShowCharts && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Gráfico de Estados */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Distribución por Estado</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-700">Pagado</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-500 h-2 rounded-full" 
-                      style={{ width: `${statusPercentage.pagado}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{statusPercentage.pagado.toFixed(1)}%</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
-                  <span className="text-sm text-gray-700">Pendiente</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-yellow-500 h-2 rounded-full" 
-                      style={{ width: `${statusPercentage.pendiente}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{statusPercentage.pendiente.toFixed(1)}%</span>
-                </div>
-              </div>
-              
-              {userRole !== 'socio' && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
-                    <span className="text-sm text-gray-700">Atrasado</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-red-500 h-2 rounded-full" 
-                        style={{ width: `${statusPercentage.atrasado}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">{statusPercentage.atrasado.toFixed(1)}%</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-
         </div>
       )}
 
       {/* Tabla de Pagos */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {userRole === 'socio' ? 'Mis Pagos' : 'Pagos'} ({filteredPayments.length} de {totalPayments})
-            </h3>
-            <div className="text-sm text-gray-500">
-              {userRole === 'socio' ? (
-                `Total: $${totalAmount.toFixed(2)}`
-              ) : (
-                `Total: $${totalAmount.toFixed(2)} | Pendiente: $${pendingAmount.toFixed(2)}`
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
               <tr>
                 {userRole !== 'socio' && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Socio</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actividad</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Método</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Pago</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                                  {userRole !== 'socio' && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                  )}
+                {userRole !== 'socio' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -454,27 +345,27 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
                   {userRole !== 'socio' && (
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{payment.memberName}</div>
-                      <div className="text-sm text-gray-500">{payment.memberId}</div>
+                      <div className="text-sm text-gray-500">ID: {payment.memberId}</div>
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{payment.activity || payment.month}</div>
-                    <div className="text-sm text-gray-500">{payment.notes}</div>
+                    <div className="text-sm font-medium text-gray-900">{payment.period || payment.month}</div>
+                    <div className="text-sm text-gray-500">{payment.activity}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{payment.dueDate || '-'}</div>
+                    {payment.diasAtraso > 0 && (
+                      <div className="text-xs text-red-600">{payment.diasAtraso} días atraso</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-bold text-gray-900">{payment.amount}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      payment.paymentMethod === 'efectivo' ? 'bg-blue-100 text-blue-800' :
-                      payment.paymentMethod === 'transferencia' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {payment.paymentMethod ? payment.paymentMethod.charAt(0).toUpperCase() + payment.paymentMethod.slice(1) : '-'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{payment.date}</div>
+                    {payment.notes && (
+                      <div className="text-xs text-gray-500">{payment.notes}</div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -488,11 +379,49 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
                   {userRole !== 'socio' && (
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {shouldShowAdminControls ? (
-                        <>
-                          <button className="text-blue-600 hover:text-blue-900 mr-3">Ver</button>
-                          <button className="text-green-600 hover:text-green-900 mr-3">Aprobar</button>
-                          <button className="text-red-600 hover:text-red-900">Rechazar</button>
-                        </>
+                        <div className="flex items-center space-x-2">
+                          {payment.comprobanteUrl && (
+                            <a 
+                              href={payment.comprobanteUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-900 font-medium"
+                              title="Ver comprobante"
+                            >
+                              Ver
+                            </a>
+                          )}
+                          {payment.status === 'Pendiente' && payment.comprobanteUrl && (
+                            <>
+                              <button 
+                                onClick={() => {
+                                  console.log('Aprobando pago ID:', payment.id);
+                                  onAprobarPago && onAprobarPago(payment.id);
+                                }}
+                                className="text-green-600 hover:text-green-900 font-medium"
+                                title="Aprobar pago"
+                              >
+                                ✓ Aprobar
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  console.log('Rechazando pago ID:', payment.id);
+                                  onRechazarPago && onRechazarPago(payment.id);
+                                }}
+                                className="text-red-600 hover:text-red-900 font-medium"
+                                title="Rechazar pago"
+                              >
+                                ✗ Rechazar
+                              </button>
+                            </>
+                          )}
+                          {payment.status === 'Atrasado' && !payment.comprobanteUrl && (
+                            <span className="text-gray-400 text-xs">Sin comprobante</span>
+                          )}
+                          {payment.status === 'Pagado' && (
+                            <span className="text-green-600 text-xs">✓ Aprobado</span>
+                          )}
+                        </div>
                       ) : null}
                     </td>
                   )}
@@ -500,9 +429,8 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
               ))}
             </tbody>
           </table>
-        </div>
 
-        {filteredPayments.length === 0 && (
+          {filteredPayments.length === 0 && (
           <div className="text-center py-12">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -548,7 +476,7 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-green-600">Clases Impartidas</p>
+                  <p className="text-sm text-green-600">Actividades Impartidas</p>
                   <p className="text-xl font-bold text-green-800">0</p>
                 </div>
               </div>
@@ -701,16 +629,16 @@ const PaymentsPanel = ({ payments, handleFileUpload, submitPayment, paymentFile,
         </div>
       )}
 
-      {/* Modal de Registro de Pagos para Administradores */}
+      {/* Modal de Registro de Pagos */}
       {showPaymentModal && (
         <PaymentModal
           isOpen={showPaymentModal}
           onClose={() => setShowPaymentModal(false)}
           members={members}
-          classes={classes}
-          onSave={handleCreatePayment}
-          payment={null}
-          mode="create"
+          onSave={async () => {
+            setShowPaymentModal(false);
+            if (onRegistrarPago) await onRegistrarPago();
+          }}
         />
       )}
     </div>

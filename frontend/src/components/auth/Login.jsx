@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -15,11 +15,13 @@ const Login = () => {
 
     const result = await login(username, password);
     
-    if (!result.success) {
+    if (result.success) {
+      // El login automáticamente actualiza el estado del AuthContext
+      // No necesitamos reload - React Router manejará la navegación
+    } else {
       setError(result.error);
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
