@@ -696,13 +696,11 @@ async function handleDeleteActivity(id) {
   const handleGenerarCuotas = async (mes, anio, valorBase, diaVencimiento) => {
     try {
       const response = await generarCuotas(mes, anio, valorBase, diaVencimiento);
-      notify("success", `Cuotas generadas: ${response.data.cuotas_creadas} creadas`);
       // Recargar las cuotas
       await cargarTodasLasCuotas();
       return response;
     } catch (error) {
       console.error("Error al generar cuotas:", error);
-      notify("error", error.response?.data?.error || "Error al generar cuotas");
       throw error;
     }
   };

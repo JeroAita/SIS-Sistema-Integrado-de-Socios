@@ -206,6 +206,7 @@ class CuotaViewSet(viewsets.ModelViewSet):
     serializer_class = CuotaSerializer
     permission_classes = [AllowAny]
     authentication_classes = []
+    pagination_class = None  # Desactivar paginación para ver todas las cuotas
 
     def get_queryset(self):
         queryset = Cuota.objects.all().order_by("id")
@@ -332,6 +333,7 @@ class CuotaViewSet(viewsets.ModelViewSet):
         from django.utils import timezone
         from datetime import datetime
         from decimal import Decimal
+        from django.db import transaction
         
         # Validar datos
         mes = request.data.get('mes')
@@ -371,72 +373,64 @@ class CuotaViewSet(viewsets.ModelViewSet):
             estado='activo'
         ).distinct()
         
-        cuotas_creadas = []
-        cuotas_existentes = []
-        errores = []
-        
-        for socio in socios:
-            try:
-                # Verificar si ya existe una cuota para este período
-                cuota_existente = Cuota.objects.filter(
-                    usuario_socio=socio,
-                    periodo_mes=mes,
-                    periodo_anio=anio
-                ).first()
+        # Usar transacción para asegurar atomicidad
+        try:
+            with transaction.atomic():
+                cuotas_creadas = []
                 
-                if cuota_existente:
-                    cuotas_existentes.append({
+                for socio in socios:
+                    # Verificar si ya existe una cuota para este período
+                    cuota_existente = Cuota.objects.filter(
+                        usuario_socio=socio,
+                        periodo_mes=mes,
+                        periodo_anio=anio
+                    ).first()
+                    
+                    # Si ya existe, omitir
+                    if cuota_existente:
+                        continue
+                    
+                    # Crear la cuota
+                    cuota = Cuota.objects.create(
+                        usuario_socio=socio,
+                        fecha_vencimiento=fecha_vencimiento,
+                        valor_base=valor_base,
+                        estado="atrasada",
+                        periodo_mes=mes,
+                        periodo_anio=anio
+                    )
+                    
+                    # Obtener inscripciones activas del socio
+                    inscripciones = Inscripcion.objects.filter(
+                        usuario_socio=socio,
+                        estado='confirmada'
+                    )
+                    
+                    # Agregar inscripciones a la cuota
+                    cuota.inscripciones.set(inscripciones)
+                    cuota.save()
+                    
+                    cuotas_creadas.append({
                         "socio": f"{socio.first_name} {socio.last_name}",
-                        "cuota_id": cuota_existente.id
+                        "cuota_id": cuota.id,
+                        "valor_base": float(cuota.valor_base),
+                        "valor_actividades": float(cuota.valor_actividades),
+                        "valor_total": float(cuota.valor_total),
+                        "num_inscripciones": inscripciones.count()
                     })
-                    continue
                 
-                # Crear la cuota
-                cuota = Cuota.objects.create(
-                    usuario_socio=socio,
-                    fecha_vencimiento=fecha_vencimiento,
-                    valor_base=valor_base,
-                    estado="atrasada",
-                    periodo_mes=mes,
-                    periodo_anio=anio
-                )
+                return Response({
+                    "mensaje": f"Proceso completado",
+                    "cuotas_creadas": len(cuotas_creadas),
+                    "detalle": {
+                        "creadas": cuotas_creadas
+                    }
+                }, status=status.HTTP_201_CREATED)
                 
-                # Obtener inscripciones activas del socio
-                inscripciones = Inscripcion.objects.filter(
-                    usuario_socio=socio,
-                    estado='confirmada'
-                )
-                
-                # Agregar inscripciones a la cuota
-                cuota.inscripciones.set(inscripciones)
-                cuota.save()
-                
-                cuotas_creadas.append({
-                    "socio": f"{socio.first_name} {socio.last_name}",
-                    "cuota_id": cuota.id,
-                    "valor_base": float(cuota.valor_base),
-                    "valor_actividades": float(cuota.valor_actividades),
-                    "valor_total": float(cuota.valor_total),
-                    "num_inscripciones": inscripciones.count()
-                })
-                
-            except Exception as e:
-                errores.append({
-                    "socio": f"{socio.first_name} {socio.last_name}",
-                    "error": str(e)
-                })
-        
-        return Response({
-            "mensaje": f"Proceso completado",
-            "cuotas_creadas": len(cuotas_creadas),
-            "cuotas_existentes": len(cuotas_existentes),
-            "errores": len(errores),
-            "detalle": {
-                "creadas": cuotas_creadas,
-                "existentes": cuotas_existentes,
-                "errores": errores
-            }
-        }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                "error": f"Error al generar cuotas: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # =====================================================
