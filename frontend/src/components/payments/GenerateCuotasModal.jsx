@@ -9,6 +9,8 @@ const GenerateCuotasModal = ({ isOpen, onClose, onGenerate }) => {
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -30,10 +32,8 @@ const GenerateCuotasModal = ({ isOpen, onClose, onGenerate }) => {
       
       setResult(response.data);
     } catch (error) {
-      setResult({
-        error: error.response?.data?.error || 'Error al generar cuotas',
-        errores: 1
-      });
+      setErrorMessage(error.response?.data?.error || 'Error al generar cuotas');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -53,8 +53,9 @@ const GenerateCuotasModal = ({ isOpen, onClose, onGenerate }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
-      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full m-4">
+    <>
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+        <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full m-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 className="text-2xl font-bold text-gray-900">Generar Cuotas del Mes</h3>
@@ -182,33 +183,16 @@ const GenerateCuotasModal = ({ isOpen, onClose, onGenerate }) => {
           ) : (
             <div>
               {/* Resultado */}
-              <div className={`p-4 rounded-lg border mb-4 ${
-                result.error ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'
-              }`}>
-                {result.error ? (
-                  <div>
-                    <h4 className="font-medium text-red-900 mb-2">Error</h4>
-                    <p className="text-sm text-red-700">{result.error}</p>
-                  </div>
-                ) : (
-                  <div>
-                    <h4 className="font-medium text-green-900 mb-2">✓ Proceso Completado</h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-green-600">Cuotas Creadas</p>
-                        <p className="text-2xl font-bold text-green-900">{result.cuotas_creadas}</p>
-                      </div>
-                      <div>
-                        <p className="text-yellow-600">Ya Existían</p>
-                        <p className="text-2xl font-bold text-yellow-900">{result.cuotas_existentes}</p>
-                      </div>
-                      <div>
-                        <p className="text-red-600">Errores</p>
-                        <p className="text-2xl font-bold text-red-900">{result.errores}</p>
-                      </div>
+              <div className="p-4 rounded-lg border mb-4 bg-green-50 border-green-200">
+                <div>
+                  <h4 className="font-medium text-green-900 mb-2">✓ Proceso Completado</h4>
+                  <div className="flex justify-center text-center">
+                    <div>
+                      <p className="text-green-600">Cuotas Creadas</p>
+                      <p className="text-2xl font-bold text-green-900">{result.cuotas_creadas}</p>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Detalles */}
@@ -233,20 +217,6 @@ const GenerateCuotasModal = ({ isOpen, onClose, onGenerate }) => {
                       </div>
                     </div>
                   )}
-
-                  {result.detalle.errores && result.detalle.errores.length > 0 && (
-                    <div className="mb-4">
-                      <h5 className="font-medium text-red-900 mb-2">Errores</h5>
-                      <div className="space-y-2">
-                        {result.detalle.errores.map((item, index) => (
-                          <div key={index} className="p-3 bg-red-50 rounded border border-red-200 text-sm">
-                            <div className="font-medium">{item.socio}</div>
-                            <div className="text-red-600">{item.error}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -262,8 +232,44 @@ const GenerateCuotasModal = ({ isOpen, onClose, onGenerate }) => {
             </div>
           )}
         </div>
+        </div>
       </div>
-    </div>
+
+      {/* Modal de Error */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-[60] flex items-center justify-center">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full m-4">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-red-900">Error al Generar Cuotas</h3>
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-sm text-red-700">{errorMessage}</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end p-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
