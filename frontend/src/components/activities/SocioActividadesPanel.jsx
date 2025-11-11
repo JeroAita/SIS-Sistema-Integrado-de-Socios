@@ -16,20 +16,41 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
     return typeof id === 'string' ? parseInt(id) : id;
   });
 
+  // Verificar si una actividad está vencida (fecha_hora_fin anterior a ahora)
+  const isActivityExpired = (activity) => {
+    if (!activity.fecha_hora_fin) return false;
+    try {
+      const endDate = new Date(activity.fecha_hora_fin);
+      // Verificar que la fecha sea válida
+      if (isNaN(endDate.getTime())) return false;
+      const now = new Date();
+      // La actividad está vencida si la fecha de fin es anterior a ahora
+      return endDate < now;
+    } catch (error) {
+      console.error('Error al verificar fecha de expiración:', error, activity);
+      return false;
+    }
+  };
+
   // Filtrar actividades según tab activo
   const getActivitiesByTab = () => {
+    const activityId = (id) => typeof id === 'string' ? parseInt(id) : id;
+    
     switch (activeTab) {
       case 'inscritas':
-        // Retornar actividades de allActivities que estén en enrolledActivityIds
-        return allActivities.filter(a => {
-          const activityId = typeof a.id === 'string' ? parseInt(a.id) : a.id;
-          return enrolledActivityIds.includes(activityId);
-        });
+        return allActivities.filter(a => 
+          enrolledActivityIds.includes(activityId(a.id)) && !isActivityExpired(a)
+        );
       case 'disponibles':
-        const activityId = (id) => typeof id === 'string' ? parseInt(id) : id;
-        return allActivities.filter(a => !enrolledActivityIds.includes(activityId(a.id)));
+        return allActivities.filter(a => 
+          !enrolledActivityIds.includes(activityId(a.id)) && !isActivityExpired(a)
+        );
+      case 'finalizadas':
+        return allActivities.filter(a => 
+          enrolledActivityIds.includes(activityId(a.id)) && isActivityExpired(a)
+        );
       default: // 'todas'
-        return allActivities;
+        return allActivities.filter(a => !isActivityExpired(a));
     }
   };
 
@@ -80,14 +101,26 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
 
   const filteredActivities = getFilteredActivities();
 
-  // Calcular estadísticas
-  const totalActividades = allActivities.length;
-  const actividadesInscritas = myEnrollments.length;
+  // Calcular estadísticas (excluyendo finalizadas)
+  const totalActividades = allActivities.filter(a => !isActivityExpired(a)).length;
+  
+  // Filtrar inscripciones que NO están en actividades finalizadas
+  const inscripcionesActivas = myEnrollments.filter(enrollment => {
+    const enrollmentActId = enrollment.activityId || enrollment.id;
+    const enrollmentActIdNum = typeof enrollmentActId === 'string' ? parseInt(enrollmentActId) : enrollmentActId;
+    const activity = allActivities.find(a => {
+      const activityId = typeof a.id === 'string' ? parseInt(a.id) : a.id;
+      return activityId === enrollmentActIdNum;
+    });
+    return activity && !isActivityExpired(activity);
+  });
+  
+  const actividadesInscritas = inscripcionesActivas.length;
   const actividadesDisponibles = allActivities.filter(a => {
     const activityId = typeof a.id === 'string' ? parseInt(a.id) : a.id;
-    return !enrolledActivityIds.includes(activityId);
+    return !enrolledActivityIds.includes(activityId) && !isActivityExpired(a);
   }).length;
-  const costoTotal = myEnrollments.reduce((sum, activity) => 
+  const costoTotal = inscripcionesActivas.reduce((sum, activity) => 
     sum + parseFloat(activity.enrollmentFee?.replace('$', '') || 0), 0
   );
 
@@ -160,7 +193,7 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Todas ({allActivities.length})
+              Todas ({allActivities.filter(a => !isActivityExpired(a)).length})
             </button>
             <button
               onClick={() => setActiveTab('inscritas')}
@@ -170,7 +203,7 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Inscritas ({myEnrollments.length})
+              Inscritas ({inscripcionesActivas.length})
             </button>
             <button
               onClick={() => setActiveTab('disponibles')}
@@ -182,7 +215,20 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
             >
               Disponibles ({allActivities.filter(a => {
                 const activityId = typeof a.id === 'string' ? parseInt(a.id) : a.id;
-                return !enrolledActivityIds.includes(activityId);
+                return !enrolledActivityIds.includes(activityId) && !isActivityExpired(a);
+              }).length})
+            </button>
+            <button
+              onClick={() => setActiveTab('finalizadas')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'finalizadas'
+                  ? 'border-gray-500 text-gray-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Finalizadas ({allActivities.filter(a => {
+                const activityId = typeof a.id === 'string' ? parseInt(a.id) : a.id;
+                return enrolledActivityIds.includes(activityId) && isActivityExpired(a);
               }).length})
             </button>
           </nav>
@@ -253,9 +299,11 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Estado
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Acciones
-              </th>
+              {activeTab !== 'finalizadas' && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Acciones
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -264,6 +312,7 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
                 const activityId = typeof activity.id === 'string' ? parseInt(activity.id) : activity.id;
                 const isEnrolled = enrolledActivityIds.includes(activityId);
                 const isFull = activity.enrolled >= activity.capacity;
+                const isExpired = isActivityExpired(activity);
                 
                 // Buscar el objeto de inscripción para poder cancelarla
                 const enrollment = myEnrollments.find(e => {
@@ -296,6 +345,10 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
                         <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-semibold">
                           ✓ Inscrito
                         </span>
+                      ) : isExpired ? (
+                        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
+                          Vencida
+                        </span>
                       ) : isFull ? (
                         <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">
                           Completo
@@ -306,34 +359,36 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {isEnrolled ? (
-                        <button
-                          onClick={() => onCancelEnrollment && enrollment && onCancelEnrollment(enrollment)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium"
-                        >
-                          Cancelar
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onEnroll(activity.id)}
-                          disabled={isFull}
-                          className={`text-sm font-medium ${
-                            isFull 
-                              ? 'text-gray-400 cursor-not-allowed'
-                              : 'text-blue-600 hover:text-blue-800'
-                          }`}
-                        >
-                          {isFull ? 'Completo' : 'Inscribirse'}
-                        </button>
-                      )}
-                    </td>
+                    {activeTab !== 'finalizadas' && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {isEnrolled ? (
+                          <button
+                            onClick={() => onCancelEnrollment && enrollment && onCancelEnrollment(enrollment)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium"
+                          >
+                            Cancelar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onEnroll(activity.id)}
+                            disabled={isFull || isExpired}
+                            className={`text-sm font-medium ${
+                              isFull || isExpired
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : 'text-blue-600 hover:text-blue-800'
+                            }`}
+                          >
+                            {isExpired ? 'Vencida' : isFull ? 'Completo' : 'Inscribirse'}
+                          </button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan="6" className="px-6 py-12 text-center">
+                <td colSpan={activeTab === 'finalizadas' ? 5 : 6} className="px-6 py-12 text-center">
                   <div className="text-gray-400">
                     <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -345,6 +400,8 @@ const SocioActividadesPanel = ({ allActivities, myEnrollments, onEnroll, onCance
                         ? 'No tienes actividades inscritas'
                         : activeTab === 'disponibles'
                         ? 'No hay actividades disponibles'
+                        : activeTab === 'finalizadas'
+                        ? 'No tienes actividades finalizadas'
                         : 'No hay actividades'
                       }
                     </p>

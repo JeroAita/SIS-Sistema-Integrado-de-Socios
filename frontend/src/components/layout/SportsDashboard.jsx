@@ -789,7 +789,8 @@ async function handleDeleteActivity(id) {
           enrollmentFee: `$${a.cargo_inscripcion}`,
           enrolled: a.cantidad_inscriptos || 0,
           capacity: 999, // Si no hay límite definido
-          inscriptosDetalle: a.inscriptos_detalle || [] // Detalles de socios inscritos
+          inscriptosDetalle: a.inscriptos_detalle || [], // Detalles de socios inscritos
+          fecha_hora_fin: a._raw_fin || a.fecha_hora_fin // Fecha de fin para validar si está vencida
         };
       });
   };

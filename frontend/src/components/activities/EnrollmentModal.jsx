@@ -2,10 +2,8 @@ import React from 'react';
 
 const EnrollmentModal = ({ isOpen, onClose, enrollment, onCancel }) => {
   const handleCancel = () => {
-    if (window.confirm('¿Estás seguro de que quieres cancelar tu inscripción a esta actividad?')) {
-      onCancel(enrollment.id);
-      onClose();
-    }
+    onCancel(enrollment.id);
+    onClose();
   };
 
   if (!isOpen || !enrollment) return null;
